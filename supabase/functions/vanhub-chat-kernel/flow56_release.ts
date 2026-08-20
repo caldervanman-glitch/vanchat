@@ -1,5 +1,5 @@
 // @ts-nocheck
-import * as base from './flow56.ts'
+import * as base from 'https://raw.githubusercontent.com/caldervanman-glitch/vanchat/a4c70d98db13f4158770cf681741d7566fe7ce51/supabase/functions/vanhub-chat-kernel/flow56.ts'
 
 export const groundedSafetyFlags=base.groundedSafetyFlags
 export const hazard=base.hazard
