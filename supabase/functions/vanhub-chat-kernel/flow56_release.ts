@@ -24,7 +24,7 @@ const BROAD_GEO=new Set([
   'uk','united kingdom','great britain','britain','england','scotland','wales','northern ireland',
   'london','greater london','yorkshire','west yorkshire','north yorkshire','south yorkshire','east yorkshire','east riding of yorkshire',
   'greater manchester','merseyside','west midlands','east midlands','midlands','north east','north west','south east','south west','east of england',
-  'bedfordshire','berkshire','buckinghamshire','cambridgeshire','cheshire','cornwall','cumbria','derbyshire','devon','dorset','durham','county durham',
+  'bedfordshire','berkshire','buckinghamshire','cambridgeshire','cheshire','cornwall','cumbria','derbyshire','devon','dorset','county durham',
   'east sussex','essex','gloucestershire','hampshire','herefordshire','hertfordshire','isle of wight','kent','lancashire','leicestershire','lincolnshire',
   'norfolk','northamptonshire','northumberland','nottinghamshire','oxfordshire','rutland','shropshire','somerset','staffordshire','suffolk','surrey',
   'warwickshire','west sussex','wiltshire','worcestershire'
@@ -100,6 +100,14 @@ function normaliseCandidateEvidence(value,obj){
   for(const [k,v] of Object.entries(value))out[k]=k==='evidence'&&typeof v==='string'?normaliseTypos(v,obj).message:normaliseCandidateEvidence(v,obj)
   return out
 }
+function suppressResolvedTypoAmbiguity(candidate,corrections){
+  if(!candidate||typeof candidate!=='object'||!corrections.length||typeof candidate.ambiguity!=='string')return candidate
+  const out={...candidate},a=geoText(out.ambiguity)
+  const typoLike=/\b(typo|spelling|misspell|misspelling|did you mean|appears to be)\b/.test(a)
+  const mentions=corrections.some(x=>a.includes(geoText(x.from))||a.includes(geoText(x.to)))
+  if(typoLike&&mentions)out.ambiguity=null
+  return out
+}
 function addNotableFromCorrection(result,obj,corrected,corrections){
   if(obj!=='ask_notable'||!corrections.length)return result
   const known=['piano','safe','wardrobe','mattress','sofa','armchair','fridge','freezer','dishwasher','cooker','table']
@@ -113,7 +121,8 @@ function addNotableFromCorrection(result,obj,corrected,corrections){
 export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
   const typo=normaliseTypos(message,obj)
   const groundedCandidate=normaliseCandidateEvidence(candidate,obj)
-  const safeCandidate=groundedCandidate&&typeof groundedCandidate==='object'?{...groundedCandidate,context_notes:[]}:groundedCandidate
+  const ambiguitySafeCandidate=suppressResolvedTypoAmbiguity(groundedCandidate,typo.corrections)
+  const safeCandidate=ambiguitySafeCandidate&&typeof ambiguitySafeCandidate==='object'?{...ambiguitySafeCandidate,context_notes:[]}:ambiguitySafeCandidate
   let result=base.reduce(j0,f0,typo.message,obj,safeCandidate,direct,media)
   result=addNotableFromCorrection(result,obj,typo.message,typo.corrections)
   return routeSpecificity(result)
