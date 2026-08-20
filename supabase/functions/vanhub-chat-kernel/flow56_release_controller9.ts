@@ -1,12 +1,11 @@
 // @ts-nocheck
 import * as base from './flow56_release_controller8.ts'
-import {canon,clean,requirements} from 'https://raw.githubusercontent.com/caldervanman-glitch/vanchat/fdacff5e91c4615d98feb13e9d72e60acf533b0f/supabase/functions/vanhub-chat-kernel/core_release_highvalue.ts'
+import {clean,requirements} from 'https://raw.githubusercontent.com/caldervanman-glitch/vanchat/fdacff5e91c4615d98feb13e9d72e60acf533b0f/supabase/functions/vanhub-chat-kernel/core_release_highvalue.ts'
 
 export const groundedSafetyFlags=base.groundedSafetyFlags
 export const hazard=base.hazard
 export const contact=base.contact
 export const missingContact=base.missingContact
-export const review=base.review
 export const faq=base.faq
 
 const MAKE='honda|yamaha|kawasaki|suzuki|bmw|ducati|triumph|ktm|harley(?: davidson)?|royal enfield|aprilia|vespa|piaggio|husqvarna|benelli|moto guzzi'
