@@ -1,5 +1,6 @@
 // @ts-nocheck
 import * as base from 'https://raw.githubusercontent.com/caldervanman-glitch/vanchat/a4c70d98db13f4158770cf681741d7566fe7ce51/supabase/functions/vanhub-chat-kernel/flow56.ts'
+import {today,requirements,yes,no} from './core.ts'
 
 export const groundedSafetyFlags=base.groundedSafetyFlags
 export const hazard=base.hazard
@@ -47,7 +48,66 @@ function postcodeAdvice(side,label){
   const cap=side==='collection'?'collection':'delivery'
   return `${label} is too broad for drivers to quote the ${cap} accurately. Please give the ${cap} postcode if you can — postcodes generally get better results because drivers can judge the route much more accurately. If you do not have it, give a specific town or local area.`
 }
+
+// Date safety: never silently accept a past date, and do not silently turn colloquial
+// relative wording into a canonical date when the interpretation could surprise the customer.
+const DATE_GUARD='__DATE_GUARD__:'
+const WEEKDAY='monday|tuesday|wednesday|thursday|friday|saturday|sunday'
+const COMPLEX_RELATIVE_DATE=new RegExp(`\\b(?:(?:a|one|two|three|four|\\d+)\\s+weeks?\\s+(?:on\\s+)?(?:${WEEKDAY}|today|tomorrow|yesterday)|(?:a\\s+)?fortnight\\s+(?:on\\s+)?(?:${WEEKDAY}|today|tomorrow|yesterday)|next\\s+(?:${WEEKDAY}))\\b`,'i')
+function dateLabel(iso){
+  try{return new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(`${iso}T12:00:00Z`))}catch{return iso}
+}
+function clearPendingDate(j){if(!j?.q)return;delete j.q.pending_date_iso;delete j.q.pending_date_text}
+function guardDate(result,j0,message,obj){
+  const j=result?.j
+  if(!j)return result
+  j.q??={}
+  const pendingIso=String(j0?.q?.pending_date_iso||'')
+  const pendingText=String(j0?.q?.pending_date_text||'')
+
+  if(obj==='ask_date'&&pendingIso){
+    if(yes(message)){
+      j.date.iso_date=pendingIso
+      j.date.original_text=pendingText||j.date.original_text||message
+      clearPendingDate(j)
+      result.f=requirements(j,result.f)
+      result.ambiguity=null
+      return result
+    }
+    if(no(message)){
+      j.date.iso_date=null
+      clearPendingDate(j)
+      result.f=requirements(j,result.f)
+      result.ambiguity=`${DATE_GUARD}No problem. What future date do you need the move?`
+      return result
+    }
+    clearPendingDate(j)
+  }
+
+  const iso=String(j.date?.iso_date||'')
+  const oldIso=String(j0?.date?.iso_date||'')
+  if(!iso||iso===oldIso)return result
+
+  if(/^\d{4}-\d{2}-\d{2}$/.test(iso)&&iso<today()){
+    j.date.iso_date=null
+    clearPendingDate(j)
+    result.f=requirements(j,result.f)
+    result.ambiguity=`${DATE_GUARD}That wording resolves to ${dateLabel(iso)}, which has already passed. What future date do you need the move?`
+    return result
+  }
+
+  if(COMPLEX_RELATIVE_DATE.test(String(message||''))){
+    j.q.pending_date_iso=iso
+    j.q.pending_date_text=String(message||'').trim()
+    j.date.iso_date=null
+    result.f=requirements(j,result.f)
+    result.ambiguity=`${DATE_GUARD}Just to confirm, do you mean ${dateLabel(iso)}?`
+  }
+  return result
+}
+
 export function prompt(o,j,amb=null){
+  if(typeof amb==='string'&&amb.startsWith(DATE_GUARD))return amb.slice(DATE_GUARD.length)
   if(amb)return base.prompt(o,j,amb)
   const cb=broadLocation(j?.collection),db=broadLocation(j?.delivery)
   if(o==='ask_route'&&(cb||db)){
@@ -125,6 +185,7 @@ export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
   const safeCandidate=ambiguitySafeCandidate&&typeof ambiguitySafeCandidate==='object'?{...ambiguitySafeCandidate,context_notes:[]}:ambiguitySafeCandidate
   let result=base.reduce(j0,f0,typo.message,obj,safeCandidate,direct,media)
   result=addNotableFromCorrection(result,obj,typo.message,typo.corrections)
+  result=guardDate(result,j0,typo.message,obj)
   return routeSpecificity(result)
 }
 
