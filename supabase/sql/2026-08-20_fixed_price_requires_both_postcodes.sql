@@ -1,0 +1,21 @@
+-- Applied to live Supabase on 2026-08-20.
+-- Hard invariant: a fixed-price load must have BOTH collection and delivery outward postcodes.
+-- This mirrors the existing collection-side requirement and prevents town-only fixed-price jobs.
+--
+-- The live change was made with CREATE OR REPLACE against public.create_fixed_price_job(jsonb)
+-- and the existing SECURITY DEFINER execute grants were preserved/re-applied:
+--   authenticated, service_role, postgres only; no anon/PUBLIC execute.
+--
+-- Validation now required inside public.create_fixed_price_job(jsonb):
+--
+-- if v_collection_postcode is null or v_collection_town is null then
+--   raise exception 'Collection outward postcode and town are required' using errcode='23514';
+-- end if;
+--
+-- if v_delivery_postcode is null or v_delivery_town is null then
+--   raise exception 'Delivery outward postcode and town are required' using errcode='23514';
+-- end if;
+--
+-- Re-apply least-privilege grants after any future function replacement:
+revoke all on function public.create_fixed_price_job(jsonb) from public, anon;
+grant execute on function public.create_fixed_price_job(jsonb) to authenticated, service_role;
