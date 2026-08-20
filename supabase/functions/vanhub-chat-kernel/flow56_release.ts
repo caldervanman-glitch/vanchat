@@ -5,7 +5,6 @@ export const groundedSafetyFlags=base.groundedSafetyFlags
 export const hazard=base.hazard
 export const contact=base.contact
 export const missingContact=base.missingContact
-export const prompt=base.prompt
 export const faq=base.faq
 
 // Bounded typo normalisation for known transport/removal vocabulary.
@@ -18,6 +17,51 @@ const VEHICLE_TERMS=['motorbike','motorcycle','scooter','brakes','steer','steers
 const DATE_TERMS=['tomorrow','monday','tuesday','wednesday','thursday','friday','saturday','sunday','morning','afternoon','evening']
 const ALL_TERMS=[...new Set([...INVENTORY_TERMS,...ACCESS_TERMS,...APPLIANCE_TERMS,...VEHICLE_TERMS,...DATE_TERMS])]
 const COMMON_COLLISIONS=new Set(['left','list','life','live','gift','loft','lint','soft','soda','soya','sale','save','same','sane','cafe','chain','choir','cable','able','stable','tablet','boxer','stars','stems','stops','wishing','steel','feel','full','lead','leaf','lean'])
+
+// These labels are useful for browsing a directory, but too broad for a driver to price a route.
+// A postcode always makes the endpoint quote-grade; otherwise a specific town/local area is required.
+const BROAD_GEO=new Set([
+  'uk','united kingdom','great britain','britain','england','scotland','wales','northern ireland',
+  'london','greater london','yorkshire','west yorkshire','north yorkshire','south yorkshire','east yorkshire','east riding of yorkshire',
+  'greater manchester','merseyside','west midlands','east midlands','midlands','north east','north west','south east','south west','east of england',
+  'bedfordshire','berkshire','buckinghamshire','cambridgeshire','cheshire','cornwall','cumbria','derbyshire','devon','dorset','durham','county durham',
+  'east sussex','essex','gloucestershire','hampshire','herefordshire','hertfordshire','isle of wight','kent','lancashire','leicestershire','lincolnshire',
+  'norfolk','northamptonshire','northumberland','nottinghamshire','oxfordshire','rutland','shropshire','somerset','staffordshire','suffolk','surrey',
+  'warwickshire','west sussex','wiltshire','worcestershire'
+])
+const geoText=v=>String(v||'').toLowerCase().replace(/[’']/g,"'").replace(/[-_]+/g,' ').replace(/^[\s.!?,;:]+|[\s.!?,;:]+$/g,'').replace(/\s+/g,' ').trim()
+function broadLocation(l){
+  if(!l||String(l.postcode||'').trim())return false
+  const town=geoText(l.town),address=geoText(l.address_text)
+  return BROAD_GEO.has(town)||BROAD_GEO.has(address)
+}
+function endpointLabel(l){return String(l?.town||l?.address_text||'that area').trim()}
+function routeSpecificity(result){
+  const j=result?.j,f=result?.f
+  if(!j||!f)return result
+  if(broadLocation(j.collection))f['collection.location']='missing'
+  if(broadLocation(j.delivery))f['delivery.location']='missing'
+  return result
+}
+function postcodeAdvice(side,label){
+  const cap=side==='collection'?'collection':'delivery'
+  return `${label} is too broad for drivers to quote the ${cap} accurately. Please give the ${cap} postcode if you can — postcodes generally get better results because drivers can judge the route much more accurately. If you do not have it, give a specific town or local area.`
+}
+export function prompt(o,j,amb=null){
+  if(amb)return base.prompt(o,j,amb)
+  const cb=broadLocation(j?.collection),db=broadLocation(j?.delivery)
+  if(o==='ask_route'&&(cb||db)){
+    if(cb&&db)return `${endpointLabel(j.collection)} to ${endpointLabel(j.delivery)} is too broad for drivers to quote accurately. Please give the collection and delivery postcodes if you can — postcodes generally get better results because drivers can judge the route much more accurately. If you do not have them, give a specific town or local area at each end.`
+    if(cb)return postcodeAdvice('collection',endpointLabel(j.collection))
+    return postcodeAdvice('delivery',endpointLabel(j.delivery))
+  }
+  if(o==='ask_collection'&&cb)return postcodeAdvice('collection',endpointLabel(j.collection))
+  if(o==='ask_delivery'&&db)return postcodeAdvice('delivery',endpointLabel(j.delivery))
+  if(o==='ask_route')return `What town/area or postcode is it being collected from, and what town/area or postcode is it going to? Please use postcodes if you have them — postcodes generally get better results because drivers can judge the route more accurately.`
+  if(o==='ask_collection')return `What is the collection postcode? Postcodes generally get better results because drivers can judge the route more accurately. If you do not have it, give a specific town or local area.`
+  if(o==='ask_delivery')return `What is the delivery postcode? Postcodes generally get better results because drivers can judge the route more accurately. If you do not have it, give a specific town or local area.`
+  return base.prompt(o,j,amb)
+}
 
 function oneEdit(a,b){
   a=String(a||'').toLowerCase();b=String(b||'').toLowerCase()
@@ -70,8 +114,9 @@ export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
   const typo=normaliseTypos(message,obj)
   const groundedCandidate=normaliseCandidateEvidence(candidate,obj)
   const safeCandidate=groundedCandidate&&typeof groundedCandidate==='object'?{...groundedCandidate,context_notes:[]}:groundedCandidate
-  const result=base.reduce(j0,f0,typo.message,obj,safeCandidate,direct,media)
-  return addNotableFromCorrection(result,obj,typo.message,typo.corrections)
+  let result=base.reduce(j0,f0,typo.message,obj,safeCandidate,direct,media)
+  result=addNotableFromCorrection(result,obj,typo.message,typo.corrections)
+  return routeSpecificity(result)
 }
 
 export function review(j){
