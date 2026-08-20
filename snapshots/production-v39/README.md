@@ -13,17 +13,16 @@ Captured immediately before engine56 production promotion.
 - Supabase bundle SHA-256: `7557119b12306484fbfc60f2f479de47bc05c245b359efe6aa161db8d4c6f5de`
 - Files returned by Supabase: `index.ts`, `schema.ts`
 
-## Raw-source preservation
+## Source preservation
 
-The exact response returned by Supabase `get_edge_function` was captured as ordered text parts. The parts preserve the response representation rather than manually reformatting the old source, to avoid introducing transcription changes into the rollback artefact.
+The production `index.ts` source returned by Supabase is preserved in escaped response form across these ordered files:
 
-Reconstruction order:
+1. `get-edge-function-response.part-001.txt` — beginning of the Supabase response and beginning of `index.ts`
+2. `get-edge-function-response.part-002.txt` — middle of `index.ts`
+3. `get-edge-function-response.part-003a.txt` — remainder of `index.ts` through the `Deno.serve` entrypoint
 
-1. `get-edge-function-response.part-001.txt` — resource lines 1–30
-2. `get-edge-function-response.part-002.txt` — resource lines 31–110
-3. `get-edge-function-response.part-003.txt` — resource lines 111–230
-4. `get-edge-function-response.part-004.txt` — resource lines 231–327
+The production `schema.ts` is also stored separately as `schema.ts` in this directory for direct use.
 
-Concatenate the four parts without adding/removing content, parse the connector response JSON, then read the `files` array to recover `index.ts` and `schema.ts`.
+To reconstruct `index.ts`, concatenate parts 001, 002 and 003a in order, extract the `index.ts` content string beginning at the first `files[0].content` value, and JSON-unescape it. The original deployed bundle identity is recorded above so a rollback can be checked against the v39 capture.
 
 Do not delete this snapshot after production promotion. Supabase's Dashboard Edge Function editor does not provide version-control rollback, so this repository is the durable rollback record.
