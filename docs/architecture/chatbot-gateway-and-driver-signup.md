@@ -19,6 +19,17 @@ A customer saying “van full”, “one Luton”, “not much” or similar is 
 
 A driver advertising capacity may legitimately describe available space in vehicle terms, e.g. “half a Luton empty”, because that is capacity information rather than customer inventory.
 
+## Route specificity and postcode policy
+
+Route information must be good enough for a driver to judge the journey realistically.
+
+- Broad labels such as “Yorkshire”, “West Yorkshire”, “London”, “Greater Manchester”, “Midlands”, a country, or a county are not quote-grade endpoints on their own and must be narrowed before the intake proceeds.
+- For an ordinary Request Quotes flow, a genuinely specific town/local area can be accepted when the postcode is not known.
+- The chatbot should nevertheless stress that postcodes generally get better results because drivers can judge the route, mileage and likely access area more accurately.
+- The chatbot must never silently guess a postcode or fuzzy-correct a place name into a different geography.
+- For a fixed-price job, BOTH collection and delivery outward postcodes are mandatory. A town-only endpoint is not acceptable for fixed-price publication.
+- The fixed-price postcode rule is a backend invariant as well as a conversational rule, so alternate UIs cannot bypass it.
+
 ## Driver signup and Framer CMS dependency
 
 Driver signup must be designed around the existing public driver profile pages, much of whose presentation/detail is currently CMS-bound in Framer.
