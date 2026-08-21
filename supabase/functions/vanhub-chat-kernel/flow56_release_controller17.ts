@@ -17,10 +17,24 @@ function countPeople(message){
   const n=s.match(/\b(\d+)\s+(?:of us|passengers?|people)\b/);return n?Number(n[1]):null
 }
 function childRelation(message){return /\b(?:daughter|son|child|kid)\b/i.test(String(message||''))}
-function answer(){return 'Possibly — but travelling in the driver\'s van is not automatically included. The driver must agree, the van must have suitable legal passenger seating and seat belts, and the driver must be happy that their insurance/terms allow it. If your daughter or other passenger is a child, tell me their age/height because a suitable child restraint may also be required. I\'ll record the passenger request for the driver rather than assume it is included.'}
+function childDetails(message){
+  const s=String(message||'')
+  let age=null,height=null
+  const a=s.match(/\b(?:age(?:d)?\s*)?(\d{1,2})\s*(?:years?|yrs?)(?:\s*old)?\b/i)||s.match(/\b(?:she|he|they|daughter|son|child)\s+(?:is|'s)\s+(\d{1,2})\b/i)
+  if(a){const n=Number(a[1]);if(n>=0&&n<=17)age=n}
+  const h=s.match(/\b(\d{2,3})\s*cm\b/i);if(h){const n=Number(h[1]);if(n>=50&&n<=220)height=n}
+  return{age,height}
+}
+function answer(message){
+  const child=childRelation(message)
+  let t="It can be possible, but it is not automatically included. The driver must agree and the van must have a proper belted passenger seat for each person. The accepting driver should also confirm their insurance/terms allow them to carry you. I'll record the request so drivers can confirm whether they can take you."
+  if(child)t+=' If your daughter/child is still subject to child-seat rules, tell me their age and approximate height; in a van the normal car rule applies until age 12 or 135 cm tall, whichever comes first.'
+  else t+=' If any passenger is a child, tell me their age and approximate height because the normal child-seat rules for cars also apply in vans.'
+  return t
+}
 
 export function faq(message){
-  if(rideRequest(message))return answer()
+  if(rideRequest(message))return answer(message)
   return base.faq(message)
 }
 
@@ -28,13 +42,22 @@ export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
   const ride=rideRequest(message)
   const oldCat=j0?.category||null,oldPassenger=structuredClone(j0?.q?.passenger||{count:null,luggage:null,special:null,arrival_deadline:null})
   const r=base.reduce(j0,f0,message,obj,candidate,direct,media),j=r.j
+  j.q??={}
+  const priorRide=!!j0?.q?.ride_request?.requested
+  if(ride||priorRide){
+    j.q.ride_request??=structuredClone(j0?.q?.ride_request||{})
+    if(ride){
+      j.q.ride_request.requested=true
+      j.q.ride_request.count=countPeople(message)||j.q.ride_request.count||null
+      j.q.ride_request.child_relation=childRelation(message)||j.q.ride_request.child_relation||false
+      j.q.ride_request.raw=String(message||'').trim()
+      j.q.ride_request.status='driver agreement required'
+    }
+    const cd=childDetails(message)
+    if(cd.age!==null)j.q.ride_request.child_age=cd.age
+    if(cd.height!==null)j.q.ride_request.child_height_cm=cd.height
+  }
   if(!ride)return r
-  j.q??={};j.q.ride_request??={}
-  j.q.ride_request.requested=true
-  j.q.ride_request.count=countPeople(message)||j.q.ride_request.count||null
-  j.q.ride_request.child_relation=childRelation(message)||j.q.ride_request.child_relation||false
-  j.q.ride_request.raw=String(message||'').trim()
-  j.q.ride_request.status='driver agreement required'
   // This is an ancillary request on the transport/removal job, not evidence that the job itself is passenger transport.
   if(oldCat!=='passenger_transport'&&j.category==='passenger_transport')j.category=oldCat
   if(oldCat!=='passenger_transport'){
@@ -52,7 +75,11 @@ export function review(j){
   if(!rr?.requested)return r
   const risks=Array.isArray(r.quote_risks)?[...r.quote_risks]:[]
   let who=rr.count?`${rr.count} passenger${rr.count===1?'':'s'}`:'customer passenger request'
-  if(rr.child_relation)who+=' (includes daughter/son/child relation — confirm age/height if a child)'
-  risks.push(`Ride with driver requested: ${who}; not guaranteed or included unless the accepting driver confirms suitable seating/seat belts and that their insurance/terms permit it`)
+  if(rr.child_relation){
+    const bits=[];if(Number.isFinite(rr.child_age))bits.push(`age ${rr.child_age}`);if(Number.isFinite(rr.child_height_cm))bits.push(`${rr.child_height_cm} cm`)
+    who+=bits.length?` (child relation: ${bits.join(', ')})`:' (includes daughter/son/child relation; age/height not confirmed)'
+  }
+  risks.push(`Ride with driver requested: ${who}; not guaranteed or included unless the accepting driver confirms enough proper belted seats and that their insurance/terms permit it`)
+  if(rr.child_relation&&(!Number.isFinite(rr.child_age)||!Number.isFinite(rr.child_height_cm)))risks.push('Passenger child-seat check: if the daughter/child is under the normal child-restraint threshold, confirm age/height and the correct restraint before carriage')
   return {...r,quote_risks:[...new Set(risks)]}
 }
