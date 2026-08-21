@@ -1,7 +1,7 @@
 // @ts-nocheck
 import {EMPTY,shape,requirements,nextObjective,relativeHouseholdValue} from '../../supabase/functions/vanhub-chat-kernel/core_release_controller49.ts'
 import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
-import {reduce,prompt} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller51.ts'
+import {reduce,prompt} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller52.ts'
 
 function merge(a,b){
   if(Array.isArray(b))return structuredClone(b)
@@ -31,8 +31,8 @@ function assertCase(c,r){
       continue
     }
     if(k==='prompt_contains'){
-      const actual=prompt(next,r.j,r.ambiguity)
-      if(!norm(actual).includes(norm(v)))throw new Error(`${c.id}: prompt missing ${v}; actual=${actual}`)
+      const actual=prompt(next,r.j,r.ambiguity),wanted=Array.isArray(v)?v:[v]
+      for(const piece of wanted)if(!norm(actual).includes(norm(piece)))throw new Error(`${c.id}: prompt missing ${piece}; actual=${actual}`)
       continue
     }
     const a=k.startsWith('field_status.')?r.f[k.slice('field_status.'.length)]:pathGet(view,k)
@@ -40,7 +40,7 @@ function assertCase(c,r){
   }
 }
 
-const fixtureFiles=['recorded-extractor-v1.jsonl','recorded-extractor-v2.jsonl','recorded-extractor-v3.jsonl']
+const fixtureFiles=['recorded-extractor-v1.jsonl','recorded-extractor-v2.jsonl','recorded-extractor-v3.jsonl','recorded-extractor-v4.jsonl']
 const cases=[]
 for(const file of fixtureFiles){
   const text=await Deno.readTextFile(new URL(`./${file}`,import.meta.url))
