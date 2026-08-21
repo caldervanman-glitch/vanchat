@@ -102,6 +102,7 @@ function stateActual(key,st){
   const j=st?.job_data||{},q=j.q||{},fs=st?.field_status||{}
   if(key.includes("."))return {kind:"value",value:pathGet(j,key)}
   const map={
+    category:()=>j.category,
     collection_town:()=>j.collection?.town,delivery_town:()=>j.delivery?.town,
     collection_postcode:()=>j.collection?.postcode,delivery_postcode:()=>j.delivery?.postcode,
     date_iso:()=>j.date?.iso_date,date_flexibility:()=>j.date?.flexibility,time:()=>j.date?.time_preference,
