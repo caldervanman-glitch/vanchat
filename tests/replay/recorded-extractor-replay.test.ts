@@ -30,8 +30,15 @@ function assertCase(c,r){
   }
 }
 
-const text=await Deno.readTextFile(new URL('./recorded-extractor-v1.jsonl',import.meta.url))
-const cases=text.split(/\r?\n/).filter(x=>x.trim()).map((line,i)=>{try{return JSON.parse(line)}catch(e){throw new Error(`fixture line ${i+1}: ${e}`)}})
+const fixtureFiles=['recorded-extractor-v1.jsonl','recorded-extractor-v2.jsonl']
+const cases=[]
+for(const file of fixtureFiles){
+  const text=await Deno.readTextFile(new URL(`./${file}`,import.meta.url))
+  for(const [i,line] of text.split(/\r?\n/).entries()){
+    if(!line.trim())continue
+    try{cases.push(JSON.parse(line))}catch(e){throw new Error(`${file} line ${i+1}: ${e}`)}
+  }
+}
 
 for(const c of cases)Deno.test(`recorded extractor replay: ${c.id}`,()=>{
   const j0=shape(merge(structuredClone(EMPTY),c.initial||{}))
