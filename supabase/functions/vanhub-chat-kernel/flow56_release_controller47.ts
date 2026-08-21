@@ -1,6 +1,6 @@
 // @ts-nocheck
 import * as base from './flow56_release_controller46.ts'
-import {clean,requirements} from './core_release_controller47.ts'
+import {broadLocation,clean} from './core_release_controller47.ts'
 
 export const groundedSafetyFlags=base.groundedSafetyFlags
 export const hazard=base.hazard
@@ -32,9 +32,13 @@ export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
     j.q.controller_route_first=true
   }
 
-  // Recompute through the final core invariant so broad geography cannot be
-  // accidentally promoted back to quote-grade by an earlier/later controller.
-  r.f=requirements(j,r.f)
+  // Do not recompute the whole requirements map here. Earlier controllers hold
+  // quote-grade guards (for example "full house" / "van full" remains missing)
+  // that a generic recomputation would erase. Only reassert the final route
+  // specificity invariant that later controllers are capable of overwriting.
+  if(broadLocation(j.collection))r.f['collection.location']='missing'
+  if(broadLocation(j.delivery))r.f['delivery.location']='missing'
+
   if(j.q.controller_route_first&&routeComplete(r.f))delete j.q.controller_route_first
   return r
 }
