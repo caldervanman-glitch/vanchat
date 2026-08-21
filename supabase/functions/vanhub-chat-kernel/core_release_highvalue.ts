@@ -14,6 +14,10 @@ export function requirements(j0,prev={}){
 }
 
 export function nextObjective(j,f){
+  // If an unusual house/flat start has already been detected, confirm it before
+  // asking for further load detail. Quote-grade inventory guards must not hide
+  // an explicit 9pm/overnight timing anomaly.
+  if(!base.known(f,'unusual_time'))return base.OBJ.unusual_time
   if(highValue(j)){
     if(!base.known(f,'inventory'))return base.OBJ.inventory
     if(base.known(f,'inventory')&&!base.known(f,'collection.location')&&!base.known(f,'delivery.location'))return 'ask_route'
