@@ -1,11 +1,11 @@
 // @ts-nocheck
 import * as base from './flow56_release_controller36.ts'
-import {canon,clean,nextObjective,requirements} from './core_release_highvalue.ts'
+import {canon,clean,requirements} from './core_release_highvalue.ts'
 
 export const groundedSafetyFlags=base.groundedSafetyFlags
 export const hazard=base.hazard
 export const contact=base.contact
-export const missingContact=base.missingContact
+export const missingContact=j=>base.missingContact(j).map(x=>x==='either a phone number or email address'?'phone number or email address':x)
 export const review=base.review
 export const faq=base.faq
 export const prompt=base.prompt
@@ -28,12 +28,7 @@ function explicitSingleBusinessItem(j,candidate,message){
 export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
   const r=base.reduce(j0,f0,message,obj,candidate,direct,media),j=r.j
   let changed=explicitSingleBusinessItem(j,candidate,message)
-  if(!currentTurnHasDate(message)&&!clean(j.q?.controller_date_change_ack)){
-    if(j.q?.controller_date_ack_iso){delete j.q.controller_date_ack_iso;changed=true}
-  }
+  if(!currentTurnHasDate(message)&&!clean(j.q?.controller_date_change_ack)&&j.q?.controller_date_ack_iso){delete j.q.controller_date_ack_iso;changed=true}
   if(changed)r.f=requirements(j,r.f)
-  // Recompute the current objective after quantity/date evidence normalization.
-  const next=nextObjective(j,r.f)
-  if(next!==obj&&j.q?.controller_progress_ack&&next!==obj)delete j.q.controller_progress_ack
   return r
 }
