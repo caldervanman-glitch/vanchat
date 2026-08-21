@@ -1,7 +1,7 @@
 // @ts-nocheck
 import {EMPTY,shape,requirements,nextObjective} from '../../supabase/functions/vanhub-chat-kernel/core_release_highvalue.ts'
 import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
-import {reduce} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller44.ts'
+import {reduce} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller45.ts'
 
 function merge(a,b){
   if(Array.isArray(b))return structuredClone(b)
@@ -36,8 +36,6 @@ const cases=text.split(/\r?\n/).filter(x=>x.trim()).map((line,i)=>{try{return JS
 for(const c of cases)Deno.test(`recorded extractor replay: ${c.id}`,()=>{
   const j0=shape(merge(structuredClone(EMPTY),c.initial||{}))
   const f0=requirements(j0,{})
-  // Reproduce the real reducer boundary: current deterministic parser output
-  // plus the recorded LLM candidate from the original QA turn.
   const direct=deterministic(c.message,c.objective_before,j0)
   const r=reduce(j0,f0,c.message,c.objective_before,c.candidate,direct,[])
   if(!r?.j||!r?.f)throw new Error(`${c.id}: reducer returned invalid result`)
