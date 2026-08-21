@@ -1,6 +1,5 @@
 // @ts-nocheck
 import * as base from './flow56_release_controller10.ts'
-import {requirements} from 'https://raw.githubusercontent.com/caldervanman-glitch/vanchat/fdacff5e91c4615d98feb13e9d72e60acf533b0f/supabase/functions/vanhub-chat-kernel/core_release_highvalue.ts'
 
 export const groundedSafetyFlags=base.groundedSafetyFlags
 export const hazard=base.hazard
@@ -20,6 +19,6 @@ function reassemblyAnswer(message){
 export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
   const r=base.reduce(j0,f0,message,obj,candidate,direct,media),j=r.j
   const ans=reassemblyAnswer(message)
-  if(ans!==null){j.reassembly_required=ans;r.f=requirements(j,r.f)}
+  if(ans!==null){j.reassembly_required=ans;r.f.reassembly='known'}
   return r
 }
