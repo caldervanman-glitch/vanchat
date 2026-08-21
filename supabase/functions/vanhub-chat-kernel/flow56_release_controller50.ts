@@ -8,17 +8,27 @@ export const contact=base.contact
 export const missingContact=base.missingContact
 export const review=base.review
 export const faq=base.faq
-export const prompt=base.prompt
 
 const CONFIRM='__CONTROLLER_DATE_CONFIRM__:'
 const validIso=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||''))
 const yes=v=>/^(?:yes|yeah|yep|correct|right|yes please|that's right|thats right)$/i.test(canon(v))
 const no=v=>/^(?:no|nope|wrong|that's wrong|thats wrong)$/i.test(canon(v))
 
+function dateLabel(iso){try{return new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(`${iso}T12:00:00Z`))}catch{return iso}}
 function literalDateText(candidate,message){
   const m=canon(message)
   const f=(candidate?.facts||[]).find(x=>x?.k==='date.original_text'&&clean(x?.v)&&clean(x?.evidence)&&m.includes(canon(x.evidence)))
   return clean(f?.v)
+}
+
+export function prompt(o,j,amb=null){
+  const ack=clean(j?.q?.controller_date_ack_iso)
+  if(validIso(ack)&&o!=='ask_date'){
+    const x=structuredClone(j)
+    if(x.q)delete x.q.controller_date_ack_iso
+    return `Got it — ${dateLabel(ack)}. ${base.prompt(o,x,amb)}`
+  }
+  return base.prompt(o,j,amb)
 }
 
 export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
