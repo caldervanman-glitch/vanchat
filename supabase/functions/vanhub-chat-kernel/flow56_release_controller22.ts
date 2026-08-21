@@ -10,9 +10,7 @@ export const faq=base.faq
 const VEHICLE_CATS=new Set(['motorbike_transport','vehicle_transport'])
 const UNKNOWN=/^(?:i\s+)?(?:don't know|dont know|do not know|not sure|unsure|no idea|unknown|haven't a clue|havent a clue)$/i
 
-function motorbikeText(j){
-  return [...(j?.inventory||[]),...(j?.heavy_or_awkward_items||[]),j?.job_type,j?.title].filter(Boolean).join(' ')
-}
+function motorbikeText(j){return [...(j?.inventory||[]),...(j?.heavy_or_awkward_items||[]),j?.job_type,j?.title].filter(Boolean).join(' ')}
 function hasMotorbike(j){return /\b(?:motorbike|motorcycle|scooter)\b/i.test(motorbikeText(j))}
 function mixedMotorbike(j){return hasMotorbike(j)&&!VEHICLE_CATS.has(j?.category)}
 function known(v){return typeof v==='string'&&v.trim().length>0}
@@ -43,19 +41,37 @@ function conditionWords(j,message){
 function primitiveKnown(v){return ['runs','rolls','steers','brakes','fuel_leak'].every(k=>['yes','no'].includes(v?.[k]))}
 function needsLoading(v){return primitiveKnown(v)&&['rolls','steers','brakes'].some(k=>v?.[k]==='no')&&!known(v?.loading)}
 
+function identityFromDense(message,j){
+  if(!hasMotorbike(j)||known(j?.q?.vehicle?.identity))return
+  const raw=String(message||'')
+  j.q??={};j.q.vehicle??={}
+  let m=raw.match(/\b(?:a|an|the)?\s*([A-Za-z0-9][A-Za-z0-9-]{1,20}(?:\s+[A-Za-z0-9][A-Za-z0-9-]{1,20})?)\s+(?:motorbike|motorcycle|scooter)\b/i)
+  if(m){
+    let x=m[1].trim()
+    if(!/^(?:a|an|the|one|my|our|this|that|a honda|an honda)$/i.test(x)&&!/^(?:moving|house|including|include|with|and)$/i.test(x))j.q.vehicle.identity=x
+  }
+}
 function identityFromAnswer(message,obj,j){
   if(obj!=='ask_vehicle_identity'||!hasMotorbike(j)||known(j?.q?.vehicle?.identity))return
-  const raw=String(message||'').trim()
-  j.q??={};j.q.vehicle??={}
+  const raw=String(message||'').trim();j.q??={};j.q.vehicle??={}
   if(UNKNOWN.test(raw)){j.q.vehicle.identity='unknown - customer does not know make/model';return}
   let x=raw.replace(/^\s*(?:it(?:'s| is)|the bike is|bike is|motorbike is|motorcycle is)\s+/i,'').trim()
   if(x.length>=2&&x.length<=60&&x.split(/\s+/).length<=6&&!/\b(?:from|to|tomorrow|today|friday|monday|tuesday|wednesday|thursday|saturday|sunday|collect|deliver|move)\b/i.test(x))j.q.vehicle.identity=x
 }
+function markMixedBikeNotable(j,r){
+  if(!mixedMotorbike(j))return
+  j.q??={}
+  if(['house_move','flat_move'].includes(j.category)){
+    j.q.notable='motorbike included'
+    r.f.notable='known'
+  }
+  if(!Array.isArray(j.heavy_or_awkward_items))j.heavy_or_awkward_items=[]
+  if(!j.heavy_or_awkward_items.some(x=>/\b(?:motorbike|motorcycle|scooter)\b/i.test(String(x))))j.heavy_or_awkward_items.push('motorbike')
+}
 
 function clearPassengerContamination(j){
   j.q??={};j.q.passenger??={count:null,luggage:null,special:null,arrival_deadline:null}
-  const p=j.q.passenger
-  const actualRide=j.category==='passenger_transport'||Number(p.count)>0
+  const p=j.q.passenger,actualRide=j.category==='passenger_transport'||Number(p.count)>0
   if(!actualRide){p.luggage=null;p.special=null;p.arrival_deadline=null}
 }
 
@@ -75,10 +91,12 @@ export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
   const r=base.reduce(j0,f0,message,obj,candidate,direct,media),j=r.j
   clearPassengerContamination(j)
   if(hasMotorbike(j)){
+    identityFromDense(message,j)
     identityFromAnswer(message,obj,j)
     conditionWords(j,message)
   }
   if(mixedMotorbike(j)){
+    markMixedBikeNotable(j,r)
     const v=j.q?.vehicle||{}
     r.f['vehicle.identity']=known(v.identity)?'known':'missing'
     r.f['vehicle.condition']=needsLoading(v)?'missing':primitiveKnown(v)?'known':'missing'
@@ -89,8 +107,7 @@ export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
 export function review(j){
   const s=base.review(j)
   if(mixedMotorbike(j)){
-    const v=j?.q?.vehicle||{}
-    const bits=[]
+    const v=j?.q?.vehicle||{},bits=[]
     if(known(v.identity))bits.push(`identity ${v.identity}`)
     for(const [k,label] of [['runs','runs'],['rolls','rolls'],['steers','steers'],['brakes','brakes']])if(['yes','no'].includes(v[k]))bits.push(`${label}: ${v[k]}`)
     if(['yes','no'].includes(v.fuel_leak))bits.push(`fuel leak: ${v.fuel_leak}`)
