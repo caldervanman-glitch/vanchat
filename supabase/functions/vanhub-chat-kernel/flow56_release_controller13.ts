@@ -1,6 +1,5 @@
 // @ts-nocheck
 import * as base from './flow56_release_controller12.ts'
-import {requirements} from 'https://raw.githubusercontent.com/caldervanman-glitch/vanchat/fdacff5e91c4615d98feb13e9d72e60acf533b0f/supabase/functions/vanhub-chat-kernel/core_release_highvalue.ts'
 
 export const groundedSafetyFlags=base.groundedSafetyFlags
 export const hazard=base.hazard
@@ -20,9 +19,9 @@ function capableHelp(s){
 export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
   const r=base.reduce(j0,f0,message,obj,candidate,direct,media),j=r.j,s=String(message||'')
   if(noHelp(s)){
-    j.customer_assistance=false;j.q??={};j.q.assistance_detail=s.trim();r.f=requirements(j,r.f)
+    j.customer_assistance=false;j.q??={};j.q.assistance_detail=s.trim();r.f.assistance='known'
   }else if(capableHelp(s)){
-    j.customer_assistance=true;j.q??={};j.q.assistance_detail=s.trim();r.f=requirements(j,r.f)
+    j.customer_assistance=true;j.q??={};j.q.assistance_detail=s.trim();r.f.assistance='known'
   }
   return r
 }
