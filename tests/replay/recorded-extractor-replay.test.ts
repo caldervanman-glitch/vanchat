@@ -1,5 +1,5 @@
 // @ts-nocheck
-import {EMPTY,shape,requirements,nextObjective,relativeHouseholdValue} from '../../supabase/functions/vanhub-chat-kernel/core_release_controller49.ts'
+import {EMPTY,shape,requirements,nextObjective,relativeHouseholdValue} from '../../supabase/functions/vanhub-chat-kernel/core_release_controller50.ts'
 import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
 import {reduce,prompt} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller56.ts'
 
@@ -40,7 +40,7 @@ function assertCase(c,r){
   }
 }
 
-const fixtureFiles=['recorded-extractor-v1.jsonl','recorded-extractor-v2.jsonl','recorded-extractor-v3.jsonl','recorded-extractor-v4.jsonl','recorded-extractor-v5.jsonl','recorded-extractor-v6.jsonl','recorded-extractor-v7.jsonl','recorded-extractor-v8.jsonl']
+const fixtureFiles=['recorded-extractor-v1.jsonl','recorded-extractor-v2.jsonl','recorded-extractor-v3.jsonl','recorded-extractor-v4.jsonl','recorded-extractor-v5.jsonl','recorded-extractor-v6.jsonl','recorded-extractor-v7.jsonl','recorded-extractor-v8.jsonl','recorded-extractor-v9.jsonl']
 const cases=[]
 for(const file of fixtureFiles){
   const text=await Deno.readTextFile(new URL(`./${file}`,import.meta.url))
