@@ -1,0 +1,50 @@
+{
+  "vector_store_name": "VanHub Removal Knowledge v4",
+  "dataset": "vanhub_removal_refinery_full_v4",
+  "source_archive_calls": 260,
+  "training_jobs": 32,
+  "total_files": 28,
+  "total_source_bytes": 402943,
+  "total_vector_usage_bytes": 910324,
+  "privacy": {
+    "raw_source_material": "private_vector_store_only",
+    "public_github_policy": "sanitised_distilled_knowledge_and_tests_only",
+    "pii_rule": "Do not commit names, phone numbers, email addresses, precise customer addresses, or verbatim identifiable call transcripts."
+  },
+  "release_policy": {
+    "runtime_retrieval": "policy_and_questioning_context_only_never_customer_evidence",
+    "all_sources_must_be_distilled": true,
+    "generated_tests_required": true,
+    "trade_refinery_previously_in_formal_eval": false
+  },
+  "files": [
+    {"filename":"approved_historic_jobs_training_only.md","source_type":"approved_historic_jobs_training_only.md","source_bytes":41668,"vector_usage_bytes":104955,"dataset":"full_v4"},
+    {"filename":"customer_removal_faq_knowledge.md","source_type":"customer_removal_faq_knowledge.md","source_bytes":2249,"vector_usage_bytes":3268,"dataset":"full_v4"},
+    {"filename":"driver_handoff_examples.md","source_type":"driver_handoff_examples.md","source_bytes":7984,"vector_usage_bytes":18542,"dataset":"full_v4"},
+    {"filename":"job_qualification_rules.md","source_type":"job_qualification_rules.md","source_bytes":3003,"vector_usage_bytes":4016,"dataset":"full_v4"},
+    {"filename":"negative_questioning_examples.md","source_type":"negative_questioning_examples.md","source_bytes":3706,"vector_usage_bytes":7426,"dataset":"full_v4"},
+    {"filename":"normalisation_dictionary.md","source_type":"normalisation_dictionary.md","source_bytes":1900,"vector_usage_bytes":2923,"dataset":"full_v4"},
+    {"filename":"questioning_examples.md","source_type":"questioning_examples.md","source_bytes":74307,"vector_usage_bytes":188961,"dataset":"full_v4"},
+    {"filename":"quotation_factors.md","source_type":"quotation_factors.md","source_bytes":1509,"vector_usage_bytes":2530,"dataset":"full_v4"},
+    {"filename":"trade_compliance_escalation_guardrails.md","source_type":"trade_scenario_refinery","source_bytes":3309,"vector_usage_bytes":4330,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_qualification_collections_and_courier_part_01_m_01.md","source_type":"trade_scenario_refinery","source_bytes":14069,"vector_usage_bytes":32699,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_qualification_collections_and_courier_part_01_m_02.md","source_type":"trade_scenario_refinery","source_bytes":13671,"vector_usage_bytes":29104,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_qualification_collections_and_courier_part_02.md","source_type":"trade_scenario_refinery","source_bytes":10631,"vector_usage_bytes":23095,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_qualification_home_and_general_part_01_m_01.md","source_type":"trade_scenario_refinery","source_bytes":14496,"vector_usage_bytes":32476,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_qualification_home_and_general_part_01_m_02.md","source_type":"trade_scenario_refinery","source_bytes":13582,"vector_usage_bytes":29073,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_qualification_home_and_general_part_01_m_03.md","source_type":"trade_scenario_refinery","source_bytes":3650,"vector_usage_bytes":4660,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_qualification_home_and_general_part_02_m_01_a.md","source_type":"trade_scenario_refinery","source_bytes":7211,"vector_usage_bytes":14080,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_qualification_home_and_general_part_02_m_01_b.md","source_type":"trade_scenario_refinery","source_bytes":7470,"vector_usage_bytes":14192,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_qualification_home_and_general_part_02_m_02.md","source_type":"trade_scenario_refinery","source_bytes":14487,"vector_usage_bytes":32326,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_qualification_home_and_general_part_02_m_03.md","source_type":"trade_scenario_refinery","source_bytes":3935,"vector_usage_bytes":4946,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_qualification_home_and_general_part_03.md","source_type":"trade_scenario_refinery","source_bytes":5783,"vector_usage_bytes":9591,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_qualification_specialist_transport_part_01_m_01.md","source_type":"trade_scenario_refinery","source_bytes":14659,"vector_usage_bytes":32905,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_qualification_specialist_transport_part_01_m_02.md","source_type":"trade_scenario_refinery","source_bytes":13568,"vector_usage_bytes":29025,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_qualification_specialist_transport_part_02.md","source_type":"trade_scenario_refinery","source_bytes":14655,"vector_usage_bytes":29843,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_specialist_reference_triggers_part_01_m_01.md","source_type":"trade_scenario_refinery","source_bytes":13939,"vector_usage_bytes":29326,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_specialist_reference_triggers_part_01_m_02.md","source_type":"trade_scenario_refinery","source_bytes":14903,"vector_usage_bytes":32915,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"trade_specialist_reference_triggers_part_02.md","source_type":"trade_scenario_refinery","source_bytes":8704,"vector_usage_bytes":18216,"refinery_version":"v1","evidence_class":"supporting_trade_knowledge","evaluation_included":false},
+    {"filename":"vanhub_refinery_v5_vector_bundle.md","source_type":"vanhub_refinery_v5_vector_bundle.md","source_bytes":68584,"vector_usage_bytes":165968,"source_rows":"261-460","trusted":"training_only"},
+    {"filename":"vanhub_removal_rules.md","source_type":"vanhub_removal_rules.md","source_bytes":5311,"vector_usage_bytes":8933,"dataset":"full_v4"}
+  ]
+}
