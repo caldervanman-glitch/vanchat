@@ -24,7 +24,8 @@ begin
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || k
     ),
-    body := jsonb_build_object('file', p_file, 'offset', p_offset, 'limit', p_limit)
+    body := jsonb_build_object('file', p_file, 'offset', p_offset, 'limit', p_limit),
+    timeout_milliseconds := 60000
   ) into rid;
   return rid;
 end;
