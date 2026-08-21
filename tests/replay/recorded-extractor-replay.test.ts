@@ -1,7 +1,7 @@
 // @ts-nocheck
 import {EMPTY,shape,requirements,nextObjective,relativeHouseholdValue} from '../../supabase/functions/vanhub-chat-kernel/core_release_controller49.ts'
 import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
-import {reduce,prompt} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller50.ts'
+import {reduce,prompt} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller51.ts'
 
 function merge(a,b){
   if(Array.isArray(b))return structuredClone(b)
@@ -26,6 +26,10 @@ function assertCase(c,r){
       if(!norm(r.j?.q?.assistance_detail).includes(norm(v)))throw new Error(`${c.id}: assistance detail missing ${v}; actual=${r.j?.q?.assistance_detail}`)
       continue
     }
+    if(k==='q.vehicle.loading_contains'){
+      if(!norm(r.j?.q?.vehicle?.loading).includes(norm(v)))throw new Error(`${c.id}: vehicle loading missing ${v}; actual=${r.j?.q?.vehicle?.loading}`)
+      continue
+    }
     if(k==='prompt_contains'){
       const actual=prompt(next,r.j,r.ambiguity)
       if(!norm(actual).includes(norm(v)))throw new Error(`${c.id}: prompt missing ${v}; actual=${actual}`)
@@ -36,7 +40,7 @@ function assertCase(c,r){
   }
 }
 
-const fixtureFiles=['recorded-extractor-v1.jsonl','recorded-extractor-v2.jsonl']
+const fixtureFiles=['recorded-extractor-v1.jsonl','recorded-extractor-v2.jsonl','recorded-extractor-v3.jsonl']
 const cases=[]
 for(const file of fixtureFiles){
   const text=await Deno.readTextFile(new URL(`./${file}`,import.meta.url))
