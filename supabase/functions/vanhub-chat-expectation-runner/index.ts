@@ -4,7 +4,7 @@ import {createClient} from "npm:@supabase/supabase-js@2.95.0"
 const TARGET="vanhub-chat-kernel"
 const ORIGIN="https://www.vanhubuk.com"
 const WAIT=725
-const FIXTURE_REF="8b5b65c4e8403d3c8d1c2e3f74484ab3ab645479"
+const FIXTURE_REF="7bdeaeba83bd2a23c442c1cf45dd8938d27dca8f"
 const REPO="caldervanman-glitch/vanchat"
 const FILES=[
   "v47-regression.jsonl",
