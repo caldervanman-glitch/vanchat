@@ -1,6 +1,6 @@
 // @ts-nocheck
 import * as base from './flow56_release_controller13.ts'
-import {requirements,clean} from 'https://raw.githubusercontent.com/caldervanman-glitch/vanchat/fdacff5e91c4615d98feb13e9d72e60acf533b0f/supabase/functions/vanhub-chat-kernel/core_release_highvalue.ts'
+import {clean} from 'https://raw.githubusercontent.com/caldervanman-glitch/vanchat/fdacff5e91c4615d98feb13e9d72e60acf533b0f/supabase/functions/vanhub-chat-kernel/core_release_highvalue.ts'
 
 export const groundedSafetyFlags=base.groundedSafetyFlags
 export const hazard=base.hazard
@@ -10,7 +10,7 @@ export const review=base.review
 export const faq=base.faq
 export const prompt=base.prompt
 
-function applyApplianceWords(j,message,obj){
+function applyApplianceWords(j,r,message,obj){
   const s=String(message||'')
   j.q??={};j.q.appliances??={present:null,disconnected:null,reconnect_requested:null}
   const relevant=obj==='ask_appliance_plumbing'||/\b(?:washing machine|dishwasher)\b/i.test(s)
@@ -22,6 +22,10 @@ function applyApplianceWords(j,message,obj){
 
   if(/\b(?:no|don't|dont|do not|won't|will not)\s+(?:need\s+)?(?:a\s+)?reconnect(?:ion|ing)?\b|\bno\s+reconnect(?:ion)?\s+needed\b|\b(?:we|i)\s+(?:will|'ll|can)\s+reconnect\s+(?:it|them|ourselves|myself)\b/i.test(s))j.q.appliances.reconnect_requested='no'
   else if(/\b(?:need|want|require|expect)\s+(?:the\s+)?driver\s+to\s+reconnect\b|\b(?:need|want|require)\s+(?:it|them)?\s*reconnect(?:ed|ion)?\b|\bdriver\s+(?:to|must|needs? to|will)\s+reconnect\b/i.test(s))j.q.appliances.reconnect_requested='yes'
+
+  const a=j.q.appliances
+  if(a.present==='no')r.f.appliance_plumbing='known'
+  else if(a.present==='yes')r.f.appliance_plumbing=['yes','no'].includes(a.disconnected)&&['yes','no'].includes(a.reconnect_requested)?'known':'missing'
 }
 
 function contactParts(message){
@@ -40,13 +44,12 @@ function contactParts(message){
 
 export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
   const r=base.reduce(j0,f0,message,obj,candidate,direct,media),j=r.j
-  applyApplianceWords(j,message,obj)
+  applyApplianceWords(j,r,message,obj)
   if(obj==='ask_contact'){
     const p=contactParts(message)
     if(p.name&&!clean(j.customer?.name))j.customer.name=p.name
     if(p.email&&!clean(j.customer?.email))j.customer.email=p.email.toLowerCase()
     if(p.phone&&!clean(j.customer?.phone))j.customer.phone=p.phone
   }
-  r.f=requirements(j,r.f)
   return r
 }
