@@ -4,7 +4,7 @@ import {createClient} from "npm:@supabase/supabase-js@2.95.0"
 const TARGET="vanhub-chat-kernel"
 const ORIGIN="https://www.vanhubuk.com"
 const WAIT=725
-const FIXTURE_REF="5a1e3063cd553375e28417488eb15c3129b2868d"
+const FIXTURE_REF="8b5b65c4e8403d3c8d1c2e3f74484ab3ab645479"
 const REPO="caldervanman-glitch/vanchat"
 const FILES=[
   "v47-regression.jsonl",
@@ -18,6 +18,7 @@ const FILES=[
   "v48-persistent-context.jsonl",
   "v48-progress-date-rendering.jsonl",
   "v48-quote-grade-state.jsonl",
+  "v48-refinery-canonical-regressions.jsonl",
   "v48-route-date-symmetric-retention.jsonl",
   "v48-safety-spam-ambiguity.jsonl",
   "v48-specialist-grounding.jsonl",
@@ -37,45 +38,33 @@ const pathGet=(o,p)=>String(p).split(".").reduce((a,k)=>a==null?undefined:a[k],o
 const sigTokens=v=>norm(v).split(/[^a-z0-9]+/).filter(x=>x&&!["a","an","the","and","of","about","around","roughly"].includes(x))
 const tokenContains=(hay,needle)=>{const h=new Set(sigTokens(hay));const n=sigTokens(needle);return n.length>0&&n.every(x=>h.has(x))}
 const textContains=(hay,needle)=>norm(hay).includes(norm(needle))
-const valueEq=(a,b)=>{
-  if(b===null)return a==null
-  if(typeof b==="boolean"||typeof b==="number")return a===b
-  return norm(a)===norm(b)
-}
-const listContainsAll=(actual,expected)=>{
-  if(!Array.isArray(actual))return false
-  const joined=actual.map(norm).join(" | ")
-  return arr(expected).every(e=>tokenContains(joined,e))
-}
+const valueEq=(a,b)=>b===null?a==null:(typeof b==="boolean"||typeof b==="number")?a===b:norm(a)===norm(b)
+const listContainsAll=(actual,expected)=>Array.isArray(actual)&&arr(expected).every(e=>tokenContains(actual.map(norm).join(" | "),e))
 const exactListContainsAll=(actual,expected)=>Array.isArray(actual)&&arr(expected).every(e=>actual.some(a=>norm(a)===norm(e)))
 
 async function loadFixture(file){
   if(!FILES.includes(file))throw Error(`UNKNOWN_FIXTURE:${file}`)
-  const url=`https://raw.githubusercontent.com/${REPO}/${FIXTURE_REF}/tests/conversation/${file}`
-  const r=await fetch(url,{headers:{"Accept":"text/plain"}})
+  const r=await fetch(`https://raw.githubusercontent.com/${REPO}/${FIXTURE_REF}/tests/conversation/${file}`,{headers:{Accept:"text/plain"}})
   if(!r.ok)throw Error(`FIXTURE_HTTP_${r.status}:${file}`)
-  const text=await r.text(),out=[]
-  for(const [i,line] of text.split(/\r?\n/).entries()){
+  const out=[]
+  for(const [i,line] of (await r.text()).split(/\r?\n/).entries()){
     if(!line.trim())continue
     try{out.push(JSON.parse(line))}catch(e){throw Error(`FIXTURE_JSON:${file}:${i+1}:${e}`)}
   }
   return out
 }
-
 async function callKernel(sessionId,turn,pageContext){
-  const url=`${Deno.env.get("SUPABASE_URL")}/functions/v1/${TARGET}`
-  const message=typeof turn==="string"?turn:String(turn?.message||"")
-  const body={action:"message",sessionId:sessionId||undefined,message,pageContext}
+  const body={action:"message",sessionId:sessionId||undefined,message:typeof turn==="string"?turn:String(turn?.message||""),pageContext}
   if(Array.isArray(turn?.attachments))body.attachments=turn.attachments
   let last=null
   for(let n=0;n<3;n++){
-    const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","Origin":ORIGIN},body:JSON.stringify(body)})
+    const r=await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/${TARGET}`,{method:"POST",headers:{"Content-Type":"application/json",Origin:ORIGIN},body:JSON.stringify(body)})
     let p={};try{p=await r.json()}catch{}
     last={status:r.status,p}
     if(![429,502,503,504].includes(r.status))return last
     if(typeof p?.sessionId==="string")sessionId=p.sessionId
-    await sleep(WAIT+200*(n+1))
     body.sessionId=sessionId||undefined
+    await sleep(WAIT+200*(n+1))
   }
   return last
 }
@@ -85,7 +74,6 @@ async function state(sb,id){
   if(r.error)throw r.error
   return r.data?{...r.data,ready_for_review:!!r.data.ready_for_review,state_revision:Number(r.data.state_revision||0)}:null
 }
-
 function pushFail(f,msg){f.push(msg)}
 function checkReply(expect,reply,f){
   if(expect.reply_contains!==undefined)for(const x of arr(expect.reply_contains))if(!textContains(reply,x))pushFail(f,`REPLY_MISSING:${x}`)
@@ -102,8 +90,7 @@ function stateActual(key,st){
   const j=st?.job_data||{},q=j.q||{},fs=st?.field_status||{}
   if(key.includes("."))return {kind:"value",value:pathGet(j,key)}
   const map={
-    category:()=>j.category,
-    collection_town:()=>j.collection?.town,delivery_town:()=>j.delivery?.town,
+    category:()=>j.category,collection_town:()=>j.collection?.town,delivery_town:()=>j.delivery?.town,
     collection_postcode:()=>j.collection?.postcode,delivery_postcode:()=>j.delivery?.postcode,
     date_iso:()=>j.date?.iso_date,date_flexibility:()=>j.date?.flexibility,time:()=>j.date?.time_preference,
     customer_name:()=>j.customer?.name,customer_phone:()=>j.customer?.phone,customer_assistance:()=>j.customer_assistance,
@@ -163,11 +150,7 @@ function checkExpect(expect,response,st){
   if(expect.state!==undefined)checkState(expect.state,st,f)
   return f
 }
-
-function normalizeTurns(s){
-  if(!Array.isArray(s?.turns))return []
-  return s.turns.map(x=>typeof x==="string"?{message:x}:x).filter(x=>typeof x?.message==="string"&&x.message.trim())
-}
+function normalizeTurns(s){return Array.isArray(s?.turns)?s.turns.map(x=>typeof x==="string"?{message:x}:x).filter(x=>typeof x?.message==="string"&&x.message.trim()):[]}
 async function runScenario(sb,runId,file,s){
   if(s?.type==="concurrency")return {skipped:true,failed:false,error:null}
   const turns=normalizeTurns(s),transcript=[],allFailures=[]
@@ -178,7 +161,6 @@ async function runScenario(sb,runId,file,s){
     for(let i=0;i<turns.length;i++){
       if(i)await sleep(WAIT)
       const turn=turns[i],r=await callKernel(sessionId,turn,pc),p=r?.p||{}
-      if(!sessionId&&typeof p.sessionId==="string")sessionId=p.sessionId
       if(typeof p.sessionId==="string")sessionId=p.sessionId
       if(sessionId)lastState=await state(sb,sessionId)
       const failures=r?.status===200?checkExpect(turn.expect,p,lastState):[`HTTP_${r?.status}:${p?.error||"unknown"}`]
@@ -194,7 +176,6 @@ async function runScenario(sb,runId,file,s){
   if(ins.error)throw ins.error
   return {skipped:false,failed:!!error||flags.length>0,error,flags}
 }
-
 Deno.serve(async req=>{
   if(req.method==="OPTIONS")return new Response("ok")
   if(req.method!=="POST")return Response.json({error:"Method not allowed"},{status:405})
@@ -210,12 +191,7 @@ Deno.serve(async req=>{
   const runId=rr.data.id
   try{
     let passed=0,failed=0,skipped=0,infra_errors=0
-    for(const s of list){
-      const r=await runScenario(sb,runId,file,s)
-      if(r.skipped){skipped++;continue}
-      if(r.failed)failed++;else passed++
-      if(r.error)infra_errors++
-    }
+    for(const s of list){const r=await runScenario(sb,runId,file,s);if(r.skipped){skipped++;continue}if(r.failed)failed++;else passed++;if(r.error)infra_errors++}
     const summary={target:TARGET,source:"github-expectation",fixture_ref:FIXTURE_REF,file,offset,limit,scenarios:list.length,evaluated:passed+failed,passed,failed,skipped_concurrency:skipped,infra_errors}
     await sb.from("qa_chatbot_acceptance_runs").update({status:"completed",finished_at:new Date().toISOString(),summary,error:null}).eq("id",runId)
     return Response.json({run_id:runId,...summary})
