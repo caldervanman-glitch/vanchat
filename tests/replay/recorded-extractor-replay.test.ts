@@ -1,16 +1,17 @@
 // @ts-nocheck
 import {EMPTY,shape,requirements,nextObjective,relativeHouseholdValue} from '../../supabase/functions/vanhub-chat-kernel/core_release_controller50.ts'
 import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
-import {reduce,prompt} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller66.ts'
+import {reduce,prompt} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller67.ts'
 
-// Recorded replay must not change meaning when CI crosses midnight. These
-// fixtures were captured against the 21 August 2026 release clock, so pin
-// zero-argument Date()/Date.now() while preserving explicitly constructed dates.
+// Recorded replay must not change meaning when CI crosses midnight. Default to
+// the original 21 August release clock; a fixture may supply clock_iso when it
+// specifically records a later date-boundary failure.
 const RealDate=Date
-const REPLAY_NOW=new RealDate('2026-08-21T12:00:00Z').getTime()
+const DEFAULT_REPLAY_NOW=new RealDate('2026-08-21T12:00:00Z').getTime()
+let replayNow=DEFAULT_REPLAY_NOW
 class ReplayDate extends RealDate{
-  constructor(...args){args.length?super(...args):super(REPLAY_NOW)}
-  static now(){return REPLAY_NOW}
+  constructor(...args){args.length?super(...args):super(replayNow)}
+  static now(){return replayNow}
 }
 globalThis.Date=ReplayDate
 
@@ -51,7 +52,7 @@ function assertCase(c,r){
   }
 }
 
-const fixtureFiles=['recorded-extractor-v1.jsonl','recorded-extractor-v2.jsonl','recorded-extractor-v3.jsonl','recorded-extractor-v4.jsonl','recorded-extractor-v5.jsonl','recorded-extractor-v6.jsonl','recorded-extractor-v7.jsonl','recorded-extractor-v8.jsonl','recorded-extractor-v9.jsonl','recorded-extractor-v10.jsonl','recorded-extractor-v11.jsonl','recorded-extractor-v12.jsonl','recorded-extractor-v13.jsonl','recorded-extractor-v14.jsonl','recorded-extractor-v15.jsonl','recorded-extractor-v16.jsonl','recorded-extractor-v17.jsonl','recorded-extractor-v18.jsonl','recorded-extractor-v19.jsonl']
+const fixtureFiles=['recorded-extractor-v1.jsonl','recorded-extractor-v2.jsonl','recorded-extractor-v3.jsonl','recorded-extractor-v4.jsonl','recorded-extractor-v5.jsonl','recorded-extractor-v6.jsonl','recorded-extractor-v7.jsonl','recorded-extractor-v8.jsonl','recorded-extractor-v9.jsonl','recorded-extractor-v10.jsonl','recorded-extractor-v11.jsonl','recorded-extractor-v12.jsonl','recorded-extractor-v13.jsonl','recorded-extractor-v14.jsonl','recorded-extractor-v15.jsonl','recorded-extractor-v16.jsonl','recorded-extractor-v17.jsonl','recorded-extractor-v18.jsonl','recorded-extractor-v19.jsonl','recorded-extractor-v20.jsonl']
 const cases=[]
 for(const file of fixtureFiles){
   const text=await Deno.readTextFile(new URL(`./${file}`,import.meta.url))
@@ -62,6 +63,7 @@ for(const file of fixtureFiles){
 }
 
 for(const c of cases)Deno.test(`recorded extractor replay: ${c.id}`,()=>{
+  replayNow=c.clock_iso?RealDate.parse(c.clock_iso):DEFAULT_REPLAY_NOW
   const j0=shape(merge(structuredClone(EMPTY),c.initial||{}))
   const f0=requirements(j0,{})
   const direct=deterministic(c.message,c.objective_before,j0)
@@ -71,6 +73,7 @@ for(const c of cases)Deno.test(`recorded extractor replay: ${c.id}`,()=>{
 })
 
 Deno.test('relative household pseudo-locations are rejected without substring false positives',()=>{
+  replayNow=DEFAULT_REPLAY_NOW
   for(const value of ["my nan's",'nans','gran','mums',"dad's house",'our parents','my mate','friends place','aunties']){
     if(!relativeHouseholdValue(value))throw new Error(`expected household reference to be rejected: ${value}`)
   }
