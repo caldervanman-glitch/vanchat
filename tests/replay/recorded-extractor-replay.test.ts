@@ -1,7 +1,7 @@
 // @ts-nocheck
 import {EMPTY,shape,requirements,nextObjective} from '../../supabase/functions/vanhub-chat-kernel/core_release_controller47.ts'
 import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
-import {reduce} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller47.ts'
+import {reduce} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller48.ts'
 
 function merge(a,b){
   if(Array.isArray(b))return structuredClone(b)
@@ -14,7 +14,7 @@ function pathGet(o,p){return String(p).split('.').reduce((a,k)=>a==null?undefine
 function norm(v){return String(v??'').toLowerCase().replace(/[’']/g,"'").replace(/\s+/g,' ').trim()}
 function eq(a,b){return b===null?a==null:(typeof b==='boolean'||typeof b==='number')?a===b:norm(a)===norm(b)}
 function assertCase(c,r){
-  const view={...r.j,field_status:r.f,next_objective:nextObjective(r.j,r.f)}
+  const view={...r.j,ambiguity:r.ambiguity,field_status:r.f,next_objective:nextObjective(r.j,r.f)}
   for(const [k,v] of Object.entries(c.expect||{})){
     if(k==='inventory_contains'){
       const joined=(r.j.inventory||[]).map(norm).join(' | ')
