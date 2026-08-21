@@ -25,7 +25,7 @@ function assertCase(c,r){
       if(!norm(r.j?.q?.assistance_detail).includes(norm(v)))throw new Error(`${c.id}: assistance detail missing ${v}; actual=${r.j?.q?.assistance_detail}`)
       continue
     }
-    const a=pathGet(view,k)
+    const a=k.startsWith('field_status.')?r.f[k.slice('field_status.'.length)]:pathGet(view,k)
     if(!eq(a,v))throw new Error(`${c.id}: ${k} expected=${JSON.stringify(v)} actual=${JSON.stringify(a)}`)
   }
 }
