@@ -3,6 +3,17 @@ import {EMPTY,shape,requirements,nextObjective,relativeHouseholdValue} from '../
 import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
 import {reduce,prompt} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller66.ts'
 
+// Recorded replay must not change meaning when CI crosses midnight. These
+// fixtures were captured against the 21 August 2026 release clock, so pin
+// zero-argument Date()/Date.now() while preserving explicitly constructed dates.
+const RealDate=Date
+const REPLAY_NOW=new RealDate('2026-08-21T12:00:00Z').getTime()
+class ReplayDate extends RealDate{
+  constructor(...args){args.length?super(...args):super(REPLAY_NOW)}
+  static now(){return REPLAY_NOW}
+}
+globalThis.Date=ReplayDate
+
 function merge(a,b){
   if(Array.isArray(b))return structuredClone(b)
   if(!b||typeof b!=='object')return b===undefined?a:b
