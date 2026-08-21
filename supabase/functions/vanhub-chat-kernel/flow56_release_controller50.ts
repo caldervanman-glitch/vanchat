@@ -14,7 +14,13 @@ const validIso=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||''))
 const yes=v=>/^(?:yes|yeah|yep|correct|right|yes please|that's right|thats right)$/i.test(canon(v))
 const no=v=>/^(?:no|nope|wrong|that's wrong|thats wrong)$/i.test(canon(v))
 
-function dateLabel(iso){try{return new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(`${iso}T12:00:00Z`))}catch{return iso}}
+function dateLabel(iso){
+  try{
+    return new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',weekday:'long',day:'numeric',month:'long',year:'numeric'})
+      .format(new Date(`${iso}T12:00:00Z`))
+      .replace(/^([^,]+),\s+/,'$1 ')
+  }catch{return iso}
+}
 function literalDateText(candidate,message){
   const m=canon(message)
   const f=(candidate?.facts||[]).find(x=>x?.k==='date.original_text'&&clean(x?.v)&&clean(x?.evidence)&&m.includes(canon(x.evidence)))
