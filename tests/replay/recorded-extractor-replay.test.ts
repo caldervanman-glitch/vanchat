@@ -1,7 +1,7 @@
 // @ts-nocheck
 import {EMPTY,shape,requirements,nextObjective} from '../../supabase/functions/vanhub-chat-kernel/core_release_highvalue.ts'
 import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
-import {reduce} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller45.ts'
+import {reduce} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller46.ts'
 
 function merge(a,b){
   if(Array.isArray(b))return structuredClone(b)
