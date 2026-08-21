@@ -1,6 +1,6 @@
 // @ts-nocheck
 import * as base from './flow56_release_controller8.ts'
-import {clean,requirements} from 'https://raw.githubusercontent.com/caldervanman-glitch/vanchat/fdacff5e91c4615d98feb13e9d72e60acf533b0f/supabase/functions/vanhub-chat-kernel/core_release_highvalue.ts'
+import {clean} from 'https://raw.githubusercontent.com/caldervanman-glitch/vanchat/fdacff5e91c4615d98feb13e9d72e60acf533b0f/supabase/functions/vanhub-chat-kernel/core_release_highvalue.ts'
 
 export const groundedSafetyFlags=base.groundedSafetyFlags
 export const hazard=base.hazard
@@ -40,7 +40,6 @@ export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
   if(obj==='ask_vehicle_condition'){
     const lt=loadingText(message);if(lt)j.q.vehicle.loading=lt
   }
-  r.f=requirements(j,r.f)
   if(['motorbike_transport','vehicle_transport'].includes(j.category)){
     if(clean(j.q.vehicle.identity))r.f['vehicle.identity']='known'
     if(needsLoadingPlan(j.q.vehicle))r.f['vehicle.condition']='missing'
