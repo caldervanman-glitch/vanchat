@@ -1,7 +1,7 @@
 // @ts-nocheck
-import {EMPTY,shape,requirements,nextObjective} from '../../supabase/functions/vanhub-chat-kernel/core_release_controller47.ts'
+import {EMPTY,shape,requirements,nextObjective,relativeHouseholdValue} from '../../supabase/functions/vanhub-chat-kernel/core_release_controller49.ts'
 import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
-import {reduce} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller48.ts'
+import {reduce} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller49.ts'
 
 function merge(a,b){
   if(Array.isArray(b))return structuredClone(b)
@@ -47,6 +47,15 @@ for(const c of cases)Deno.test(`recorded extractor replay: ${c.id}`,()=>{
   const r=reduce(j0,f0,c.message,c.objective_before,c.candidate,direct,[])
   if(!r?.j||!r?.f)throw new Error(`${c.id}: reducer returned invalid result`)
   assertCase(c,r)
+})
+
+Deno.test('relative household pseudo-locations are rejected without substring false positives',()=>{
+  for(const value of ["my nan's",'nans','gran','mums',"dad's house",'our parents','my mate','friends place','aunties']){
+    if(!relativeHouseholdValue(value))throw new Error(`expected household reference to be rejected: ${value}`)
+  }
+  for(const value of ['Leeds','York','Bradford','Nantwich','Mumby','Grantham']){
+    if(relativeHouseholdValue(value))throw new Error(`real place false-positive: ${value}`)
+  }
 })
 
 Deno.test('recorded extractor replay corpus is nontrivial and PII-safe',()=>{
