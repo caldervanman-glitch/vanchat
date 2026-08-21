@@ -1,7 +1,7 @@
 // @ts-nocheck
 import {EMPTY,shape,requirements,nextObjective,relativeHouseholdValue} from '../../supabase/functions/vanhub-chat-kernel/core_release_controller49.ts'
 import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
-import {reduce} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller50.ts'
+import {reduce,prompt} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller50.ts'
 
 function merge(a,b){
   if(Array.isArray(b))return structuredClone(b)
@@ -14,7 +14,8 @@ function pathGet(o,p){return String(p).split('.').reduce((a,k)=>a==null?undefine
 function norm(v){return String(v??'').toLowerCase().replace(/[’']/g,"'").replace(/\s+/g,' ').trim()}
 function eq(a,b){return b===null?a==null:(typeof b==='boolean'||typeof b==='number')?a===b:norm(a)===norm(b)}
 function assertCase(c,r){
-  const view={...r.j,ambiguity:r.ambiguity,field_status:r.f,next_objective:nextObjective(r.j,r.f)}
+  const next=nextObjective(r.j,r.f)
+  const view={...r.j,ambiguity:r.ambiguity,field_status:r.f,next_objective:next}
   for(const [k,v] of Object.entries(c.expect||{})){
     if(k==='inventory_contains'){
       const joined=(r.j.inventory||[]).map(norm).join(' | ')
@@ -23,6 +24,11 @@ function assertCase(c,r){
     }
     if(k==='q.assistance_detail_contains'){
       if(!norm(r.j?.q?.assistance_detail).includes(norm(v)))throw new Error(`${c.id}: assistance detail missing ${v}; actual=${r.j?.q?.assistance_detail}`)
+      continue
+    }
+    if(k==='prompt_contains'){
+      const actual=prompt(next,r.j,r.ambiguity)
+      if(!norm(actual).includes(norm(v)))throw new Error(`${c.id}: prompt missing ${v}; actual=${actual}`)
       continue
     }
     const a=k.startsWith('field_status.')?r.f[k.slice('field_status.'.length)]:pathGet(view,k)
