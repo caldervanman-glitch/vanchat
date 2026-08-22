@@ -1,0 +1,2 @@
+{"name":"towns_without_postcodes_remain_usable","turns":["washing machine from York to Sheffield, no postcodes yet"],"expect":{"category":"single_item","collection":{"town":"York"},"delivery":{"town":"Sheffield"},"last_objective_not":"ask_delivery"}}
+{"name":"route_grounding_requires_literal_current_turn","turns":["washing machine from York to Sheffield, no postcodes yet","actually delivery is Leeds"],"expect":{"delivery":{"town":"Leeds"}}}

@@ -1,0 +1,54 @@
+name: Recorded extractor replay
+
+on:
+  push:
+    branches:
+      - fix/mixed-load-specialists-v48
+    paths:
+      - 'tests/replay/**'
+      - 'security/FINAL_CHATBOT_DELTA_SCAN.md'
+      - 'security/FINAL_SECURITY_DELTA_SCAN_INSTRUCTIONS.md'
+      - 'supabase/functions/vanhub-chat-kernel/**'
+      - 'supabase/functions/vanhub-chat-confirm/**'
+      - 'supabase/functions/vanhub-chat-confirm-candidate/**'
+      - 'supabase/functions/vanhub-chat-expectation-runner/**'
+      - 'supabase/functions/vanhub-vector-audit/**'
+      - 'supabase/functions/vanhub-vector-audit-fallback/**'
+      - 'supabase/functions/vanhub-vector-distill/**'
+      - 'supabase/functions/vanhub-refinery-adjudicate/**'
+      - 'supabase/migrations/*security_operator_auth_helpers.sql'
+      - 'supabase/migrations/*security_operator_auth_bearer_headers.sql'
+      - 'supabase/migrations/*lock_operator_auth_helpers.sql'
+      - '.github/workflows/replay-regressions.yml'
+  pull_request:
+    paths:
+      - 'tests/replay/**'
+      - 'security/FINAL_CHATBOT_DELTA_SCAN.md'
+      - 'security/FINAL_SECURITY_DELTA_SCAN_INSTRUCTIONS.md'
+      - 'supabase/functions/vanhub-chat-kernel/**'
+      - 'supabase/functions/vanhub-chat-confirm/**'
+      - 'supabase/functions/vanhub-chat-confirm-candidate/**'
+      - 'supabase/functions/vanhub-chat-expectation-runner/**'
+      - 'supabase/functions/vanhub-vector-audit/**'
+      - 'supabase/functions/vanhub-vector-audit-fallback/**'
+      - 'supabase/functions/vanhub-vector-distill/**'
+      - 'supabase/functions/vanhub-refinery-adjudicate/**'
+      - 'supabase/migrations/*security_operator_auth_helpers.sql'
+      - 'supabase/migrations/*security_operator_auth_bearer_headers.sql'
+      - 'supabase/migrations/*lock_operator_auth_helpers.sql'
+      - '.github/workflows/replay-regressions.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Run recorded extractor replay, security and core-flow tests
+        run: deno test --allow-read --allow-net=raw.githubusercontent.com tests/replay/recorded-extractor-replay.test.ts tests/replay/security-boundaries.test.ts tests/replay/controller77-basic-flow.test.ts tests/replay/controller78-live-basic-flow.test.ts

@@ -1,0 +1,209 @@
+// @ts-nocheck
+import {EMPTY,shape,requirements,nextObjective,relativeHouseholdValue} from '../../supabase/functions/vanhub-chat-kernel/core_release_controller50.ts'
+import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
+import {reduce,prompt,review} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller74.ts'
+import {reduce as reduce33} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller33.ts'
+import {reduce as reduce40} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller40.ts'
+import {reduce as reduce53} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller53.ts'
+import {reduce as reduce54} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller54.ts'
+import {driverRiskNotes,mergeDriverNotes} from '../../supabase/functions/vanhub-chat-confirm/driver_notes_v8.ts'
+
+// Recorded replay must not change meaning when CI crosses midnight. Default to
+// the original 21 August release clock; a fixture may supply clock_iso when it
+// specifically records a later date-boundary failure.
+const RealDate=Date
+const DEFAULT_REPLAY_NOW=new RealDate('2026-08-21T12:00:00Z').getTime()
+let replayNow=DEFAULT_REPLAY_NOW
+class ReplayDate extends RealDate{
+  constructor(...args){args.length?super(...args):super(replayNow)}
+  static now(){return replayNow}
+}
+globalThis.Date=ReplayDate
+
+function merge(a,b){
+  if(Array.isArray(b))return structuredClone(b)
+  if(!b||typeof b!=='object')return b===undefined?a:b
+  const out={...(a&&typeof a==='object'?a:{})}
+  for(const [k,v] of Object.entries(b))out[k]=merge(out[k],v)
+  return out
+}
+function pathGet(o,p){return String(p).split('.').reduce((a,k)=>a==null?undefined:a[k],o)}
+function norm(v){return String(v??'').toLowerCase().replace(/[’']/g,"'").replace(/\s+/g,' ').trim()}
+function eq(a,b){return b===null?a==null:(typeof b==='boolean'||typeof b==='number')?a===b:norm(a)===norm(b)}
+function assertCase(c,r){
+  const next=nextObjective(r.j,r.f)
+  const view={...r.j,ambiguity:r.ambiguity,field_status:r.f,next_objective:next}
+  for(const [k,v] of Object.entries(c.expect||{})){
+    if(k==='inventory_contains'){
+      const joined=(r.j.inventory||[]).map(norm).join(' | ')
+      if(!joined.includes(norm(v)))throw new Error(`${c.id}: inventory missing ${v}; actual=${joined}`)
+      continue
+    }
+    if(k.startsWith('driver_notes_contains')){
+      const joined=(r.j?.q?.driver_notes||[]).map(norm).join(' | ')
+      if(!joined.includes(norm(v)))throw new Error(`${c.id}: driver notes missing ${v}; actual=${joined}`)
+      continue
+    }
+    if(k==='q.assistance_detail_contains'){
+      if(!norm(r.j?.q?.assistance_detail).includes(norm(v)))throw new Error(`${c.id}: assistance detail missing ${v}; actual=${r.j?.q?.assistance_detail}`)
+      continue
+    }
+    if(k==='q.vehicle.loading_contains'){
+      if(!norm(r.j?.q?.vehicle?.loading).includes(norm(v)))throw new Error(`${c.id}: vehicle loading missing ${v}; actual=${r.j?.q?.vehicle?.loading}`)
+      continue
+    }
+    if(k==='prompt_contains'){
+      const actual=prompt(next,r.j,r.ambiguity),wanted=Array.isArray(v)?v:[v]
+      for(const piece of wanted)if(!norm(actual).includes(norm(piece)))throw new Error(`${c.id}: prompt missing ${piece}; actual=${actual}`)
+      continue
+    }
+    const a=k.startsWith('field_status.')?r.f[k.slice('field_status.'.length)]:pathGet(view,k)
+    if(!eq(a,v))throw new Error(`${c.id}: ${k} expected=${JSON.stringify(v)} actual=${JSON.stringify(a)}`)
+  }
+}
+
+const fixtureFiles=['recorded-extractor-v1.jsonl','recorded-extractor-v2.jsonl','recorded-extractor-v3.jsonl','recorded-extractor-v4.jsonl','recorded-extractor-v5.jsonl','recorded-extractor-v6.jsonl','recorded-extractor-v7.jsonl','recorded-extractor-v8.jsonl','recorded-extractor-v9.jsonl','recorded-extractor-v10.jsonl','recorded-extractor-v11.jsonl','recorded-extractor-v12.jsonl','recorded-extractor-v13.jsonl','recorded-extractor-v14.jsonl','recorded-extractor-v15.jsonl','recorded-extractor-v16.jsonl','recorded-extractor-v17.jsonl','recorded-extractor-v18.jsonl','recorded-extractor-v19.jsonl','recorded-extractor-v20.jsonl','recorded-extractor-v21.jsonl','recorded-extractor-v22.jsonl','recorded-extractor-v23.jsonl','recorded-extractor-v24.jsonl','recorded-extractor-v25.jsonl','recorded-extractor-v26.jsonl','recorded-extractor-v27.jsonl']
+const cases=[]
+for(const file of fixtureFiles){
+  const text=await Deno.readTextFile(new URL(`./${file}`,import.meta.url))
+  for(const [i,line] of text.split(/\r?\n/).entries()){
+    if(!line.trim())continue
+    try{cases.push(JSON.parse(line))}catch(e){throw new Error(`${file} line ${i+1}: ${e}`)}
+  }
+}
+
+for(const c of cases)Deno.test(`recorded extractor replay: ${c.id}`,()=>{
+  replayNow=c.clock_iso?RealDate.parse(c.clock_iso):DEFAULT_REPLAY_NOW
+  const j0=shape(merge(structuredClone(EMPTY),c.initial||{}))
+  const f0=requirements(j0,{})
+  const direct=deterministic(c.message,c.objective_before,j0)
+  const r=reduce(j0,f0,c.message,c.objective_before,c.candidate,direct,[])
+  if(!r?.j||!r?.f)throw new Error(`${c.id}: reducer returned invalid result`)
+  assertCase(c,r)
+})
+
+Deno.test('security: model-only container count cannot replace canonical inventory',()=>{
+  const j0=shape(merge(structuredClone(EMPTY),{category:'courier',inventory:['boxes'],collection:{town:'Leeds'},delivery:{town:'York'}}))
+  const f0=requirements(j0,{})
+  const candidate={facts:[],inventory_add:[{value:'20 boxes',kind:'approximate',evidence:'about 20 boxes'}],heavy_add:[]}
+  const bad=reduce33(j0,f0,'not sure, just a few','clarify_load',candidate,null,[])
+  if((bad.j.inventory||[]).some(x=>norm(x).includes('20 boxes')))throw new Error(`model-only count was promoted: ${JSON.stringify(bad.j.inventory)}`)
+  const good=reduce33(j0,f0,'about 20 boxes','clarify_load',candidate,null,[])
+  if(!(good.j.inventory||[]).some(x=>norm(x).includes('20 boxes')))throw new Error(`literal customer count was not retained: ${JSON.stringify(good.j.inventory)}`)
+})
+
+Deno.test('security: model ISO must match literal absolute customer date',()=>{
+  replayNow=DEFAULT_REPLAY_NOW
+  const j0=shape(structuredClone(EMPTY)),f0=requirements(j0,{})
+  const mk=iso=>({facts:[{k:'date.iso_date',v:iso,kind:'operational',evidence:'5 September'},{k:'date.original_text',v:'5 September',kind:'operational',evidence:'5 September'}],inventory_add:[],heavy_add:[]})
+  const bad=reduce40(j0,f0,'5 September','ask_date',mk('2026-09-06'),null,[])
+  if(bad.j?.date?.iso_date)throw new Error(`mismatched model ISO was promoted: ${bad.j.date.iso_date}`)
+  const good=reduce40(j0,f0,'5 September','ask_date',mk('2026-09-05'),null,[])
+  if(good.j?.date?.iso_date!=='2026-09-05')throw new Error(`matching literal date was not retained: ${good.j?.date?.iso_date}`)
+})
+
+Deno.test('security: complete recovered route replaces stale endpoints only from current route statement',()=>{
+  const j0=shape(merge(structuredClone(EMPTY),{category:'vehicle_transport',collection:{town:'Leeds'},delivery:{town:'York'}})),f0=requirements(j0,{})
+  const candidate={facts:[{k:'specialist.site_access',v:'Manchester to Sheffield',kind:'operational',evidence:'Manchester to Sheffield'}],inventory_add:[],heavy_add:[]}
+  const r=reduce53(j0,f0,'actually it is Manchester to Sheffield','clarify_route',candidate,null,[])
+  if(r.j.collection?.town!=='Manchester'||r.j.delivery?.town!=='Sheffield')throw new Error(`stale route survived: ${r.j.collection?.town} -> ${r.j.delivery?.town}`)
+})
+
+Deno.test('security: endpoint recovery uses token boundaries not substrings',()=>{
+  const j0=shape(merge(structuredClone(EMPTY),{category:'vehicle_transport',delivery:{town:'Leeds'}})),f0=requirements(j0,{})
+  const badCandidate={facts:[{k:'specialist.site_access',v:'ham',kind:'operational',evidence:'ham'}],inventory_add:[],heavy_add:[]}
+  const bad=reduce54(j0,f0,'moving the bike from Birmingham to Leeds','clarify_route',badCandidate,null,[])
+  if(norm(bad.j.collection?.town)==='ham')throw new Error('substring endpoint ham matched Birmingham')
+  const goodCandidate={facts:[{k:'specialist.site_access',v:'Birmingham',kind:'operational',evidence:'Birmingham'}],inventory_add:[],heavy_add:[]}
+  const good=reduce54(j0,f0,'moving the bike from Birmingham to Leeds','clarify_route',goodCandidate,null,[])
+  if(good.j.collection?.town!=='Birmingham')throw new Error(`literal endpoint was not recovered: ${good.j.collection?.town}`)
+})
+
+Deno.test('dismantling prompt does not ask to dismantle a fridge freezer',()=>{
+  const j=shape(merge(structuredClone(EMPTY),{
+    category:'single_item',
+    inventory:['sofa','two beds','two wardrobes','washing machine','fridge freezer','about 30 bin bags']
+  }))
+  const actual=prompt('ask_dismantling',j)
+  if(/fridge freezer/i.test(actual))throw new Error(`fridge freezer selected for dismantling: ${actual}`)
+  if(!/(bed|wardrobe)/i.test(actual))throw new Error(`expected real furniture dismantling target: ${actual}`)
+})
+
+Deno.test('dismantling or reassembly can suggest a non-mandatory image',()=>{
+  const j=shape(merge(structuredClone(EMPTY),{category:'furniture_move',inventory:['large double wardrobe'],dismantling_required:true,q:{dismantling_mode:'driver'}}))
+  const actual=prompt('ask_reassembly',j)
+  if(!/upload a photo/i.test(actual)||!/not required/i.test(actual))throw new Error(`missing optional photo guidance: ${actual}`)
+})
+
+Deno.test('mixed house motorbike asks make/model before condition after date',()=>{
+  const j0=shape(merge(structuredClone(EMPTY),{
+    category:'house_move',job_type:'house_move',
+    collection:{town:'Huddersfield'},delivery:{town:'Manchester'},
+    inventory:['two bedrooms, all boxed'],heavy_or_awkward_items:['motorbike, 125cc'],
+    q:{notable:'motorbike included',packing:'all boxed',vehicle:{identity:'got my'}}
+  }))
+  const f0=requirements(j0,{})
+  const message='29 August at 9am'
+  const candidate={facts:[
+    {k:'date.iso_date',v:'2026-08-29',kind:'operational',evidence:'29 August'},
+    {k:'date.original_text',v:'29 August',kind:'operational',evidence:'29 August'},
+    {k:'date.time_preference',v:'9am',kind:'operational',evidence:'9am'}
+  ],category:null,inventory_add:[],heavy_add:[],context_notes:[],safety_flags:[],correction:false,disposition:'continue',ambiguity:null}
+  const r=reduce(j0,f0,message,'ask_date',candidate,deterministic(message,'ask_date',j0),[])
+  const next=nextObjective(r.j,r.f)
+  if(next!=='ask_vehicle_identity')throw new Error(`expected make/model before condition; got ${next}`)
+  const actual=prompt(next,r.j)
+  if(!/make\/model|make.*model/i.test(actual))throw new Error(`identity prompt missing make/model: ${actual}`)
+})
+
+Deno.test('multi-stop review shows every stored stop',()=>{
+  const j=shape(merge(structuredClone(EMPTY),{
+    category:'furniture_move',
+    inventory:['sofa','dining table'],
+    collection:{town:'Leeds'},
+    delivery:{town:'Manchester'},
+    q:{multi_stop:{collections:['Leeds','Wakefield'],deliveries:['Manchester']}}
+  }))
+  const s=review(j)
+  for(const place of ['Leeds','Wakefield','Manchester'])if(!norm(s.route).includes(norm(place)))throw new Error(`route missing ${place}: ${s.route}`)
+})
+
+Deno.test('vehicle and specialist details become review quote risks',()=>{
+  const j=shape(merge(structuredClone(EMPTY),{
+    category:'house_move',inventory:['motorbike'],
+    q:{vehicle:{identity:'Honda CB125F',runs:'yes',rolls:'yes',steers:'yes',brakes:'yes',fuel_leak:'no',oil_leak:'no'},specialist:{weight:'120kg',loading:'ramp'}}
+  }))
+  const s=review(j),joined=(s.quote_risks||[]).join(' | ')
+  for(const piece of ['Honda CB125F','runs: yes','fuel leak: no','120kg','loading: ramp'])if(!norm(joined).includes(norm(piece)))throw new Error(`review risks missing ${piece}: ${joined}`)
+})
+
+Deno.test('confirm-note projection includes route, appliance, review risks and exact driver-risk notes',()=>{
+  const j=shape(merge(structuredClone(EMPTY),{
+    q:{
+      multi_stop:{collections:['Leeds','Wakefield'],deliveries:['Manchester']},
+      appliances:{present:'yes',disconnected:'no',reconnect_requested:'yes'},
+      driver_notes:['Customer said: "loads of us helping" — lifting help needs direct qualification with the customer.']
+    }
+  }))
+  const summary={quote_risks:['Packing: substantial loose/unboxed items','Lifting help: two adults confirmed']}
+  const actual=mergeDriverNotes(driverRiskNotes(j,summary))||''
+  for(const piece of ['Leeds','Wakefield','Manchester','not insured or willing','loads of us helping','substantial loose/unboxed items','two adults confirmed'])if(!norm(actual).includes(norm(piece)))throw new Error(`driver projection missing ${piece}: ${actual}`)
+})
+
+Deno.test('relative household pseudo-locations are rejected without substring false positives',()=>{
+  replayNow=DEFAULT_REPLAY_NOW
+  for(const value of ["my nan's",'nans','gran','mums',"dad's house",'our parents','my mate','friends place','aunties']){
+    if(!relativeHouseholdValue(value))throw new Error(`expected household reference to be rejected: ${value}`)
+  }
+  for(const value of ['Leeds','York','Bradford','Nantwich','Mumby','Grantham']){
+    if(relativeHouseholdValue(value))throw new Error(`real place false-positive: ${value}`)
+  }
+})
+
+Deno.test('recorded extractor replay corpus is nontrivial and PII-safe',()=>{
+  if(cases.length<6)throw new Error(`expected at least 6 recorded cases, got ${cases.length}`)
+  const raw=JSON.stringify(cases)
+  if(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(raw))throw new Error('email-like PII found in replay corpus')
+  if(/(?:\+44\s?\d|\b07\d{9}\b)/.test(raw))throw new Error('phone-like PII found in replay corpus')
+  if(cases.some(c=>!Number.isInteger(c.source_turn_id)))throw new Error('every replay case needs source_turn_id provenance')
+})
