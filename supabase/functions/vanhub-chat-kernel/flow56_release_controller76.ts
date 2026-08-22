@@ -44,9 +44,14 @@ function stopNotes(message,stops){
   return out
 }
 function cleanMultiStopLeak(j,before,message){
-  const ms=j?.q?.multi_stop||before?.q?.multi_stop||{},stops=ded([...arr(ms.collections),...arr(ms.deliveries)])
+  const prior=before?.q?.multi_stop||{},current=j?.q?.multi_stop||{}
+  const collections=ded([...arr(prior.collections),...arr(current.collections)])
+  const deliveries=ded([...arr(prior.deliveries),...arr(current.deliveries)])
+  const stops=ded([...collections,...deliveries])
   if(stops.length<3)return
+  j.q.multi_stop={collections,deliveries}
   const notes=stopNotes(message,stops);if(!Object.keys(notes).length)return
+  j.q.multi_stop_access={...(before?.q?.multi_stop_access||{}),...(j.q.multi_stop_access||{}),...notes}
   const primaries=[clean(j?.collection?.town),clean(j?.delivery?.town)].filter(Boolean)
   const intermediates=stops.filter(s=>!primaries.some(p=>norm(p)===norm(s)))
   const terms={stairs:/\bstairs?\b/i,internal_stairs:/\bstairs?\b/i,lift:/\blift\b/i,floor:/\bfloor\b/i,parking:/\bpark(?:ing)?\b/i,carry_distance:/\bcarry|\b\d+\s*(?:m|metres?|meters?|yards?|ft|feet)\b/i,external_steps:/\bsteps?\b/i}
