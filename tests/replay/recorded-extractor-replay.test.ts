@@ -2,7 +2,7 @@
 import {EMPTY,shape,requirements,nextObjective,relativeHouseholdValue} from '../../supabase/functions/vanhub-chat-kernel/core_release_controller50.ts'
 import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
 import {reduce,prompt,review} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller74.ts'
-import {driverRiskNotes,mergeDriverNotes} from '../../supabase/functions/vanhub-chat-confirm/driver_notes_v7.ts'
+import {driverRiskNotes,mergeDriverNotes} from '../../supabase/functions/vanhub-chat-confirm/driver_notes_v8.ts'
 
 // Recorded replay must not change meaning when CI crosses midnight. Default to
 // the original 21 August release clock; a fixture may supply clock_iso when it
@@ -127,7 +127,16 @@ Deno.test('multi-stop review shows every stored stop',()=>{
   for(const place of ['Leeds','Wakefield','Manchester'])if(!norm(s.route).includes(norm(place)))throw new Error(`route missing ${place}: ${s.route}`)
 })
 
-Deno.test('confirm-note projection includes route, appliance and exact driver-risk notes',()=>{
+Deno.test('vehicle and specialist details become review quote risks',()=>{
+  const j=shape(merge(structuredClone(EMPTY),{
+    category:'house_move',inventory:['motorbike'],
+    q:{vehicle:{identity:'Honda CB125F',runs:'yes',rolls:'yes',steers:'yes',brakes:'yes',fuel_leak:'no',oil_leak:'no'},specialist:{weight:'120kg',loading:'ramp'}}
+  }))
+  const s=review(j),joined=(s.quote_risks||[]).join(' | ')
+  for(const piece of ['Honda CB125F','runs: yes','fuel leak: no','120kg','loading: ramp'])if(!norm(joined).includes(norm(piece)))throw new Error(`review risks missing ${piece}: ${joined}`)
+})
+
+Deno.test('confirm-note projection includes route, appliance, review risks and exact driver-risk notes',()=>{
   const j=shape(merge(structuredClone(EMPTY),{
     q:{
       multi_stop:{collections:['Leeds','Wakefield'],deliveries:['Manchester']},
@@ -135,8 +144,9 @@ Deno.test('confirm-note projection includes route, appliance and exact driver-ri
       driver_notes:['Customer said: "loads of us helping" — lifting help needs direct qualification with the customer.']
     }
   }))
-  const actual=mergeDriverNotes(driverRiskNotes(j))||''
-  for(const piece of ['Leeds','Wakefield','Manchester','not insured or willing','loads of us helping'])if(!norm(actual).includes(norm(piece)))throw new Error(`driver projection missing ${piece}: ${actual}`)
+  const summary={quote_risks:['Packing: substantial loose/unboxed items','Lifting help: two adults confirmed']}
+  const actual=mergeDriverNotes(driverRiskNotes(j,summary))||''
+  for(const piece of ['Leeds','Wakefield','Manchester','not insured or willing','loads of us helping','substantial loose/unboxed items','two adults confirmed'])if(!norm(actual).includes(norm(piece)))throw new Error(`driver projection missing ${piece}: ${actual}`)
 })
 
 Deno.test('relative household pseudo-locations are rejected without substring false positives',()=>{
