@@ -51,4 +51,4 @@ jobs:
         with:
           deno-version: v2.x
       - name: Run recorded extractor replay, security and core-flow tests
-        run: deno test --allow-read --allow-net=raw.githubusercontent.com tests/replay/recorded-extractor-replay.test.ts tests/replay/security-boundaries.test.ts tests/replay/controller77-basic-flow.test.ts
+        run: deno test --allow-read --allow-net=raw.githubusercontent.com tests/replay/recorded-extractor-replay.test.ts tests/replay/security-boundaries.test.ts tests/replay/controller77-basic-flow.test.ts tests/replay/controller78-live-basic-flow.test.ts
