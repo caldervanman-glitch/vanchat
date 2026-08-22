@@ -2,6 +2,10 @@
 import {EMPTY,shape,requirements,nextObjective,relativeHouseholdValue} from '../../supabase/functions/vanhub-chat-kernel/core_release_controller50.ts'
 import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
 import {reduce,prompt,review} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller74.ts'
+import {reduce as reduce33} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller33.ts'
+import {reduce as reduce40} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller40.ts'
+import {reduce as reduce53} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller53.ts'
+import {reduce as reduce54} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller54.ts'
 import {driverRiskNotes,mergeDriverNotes} from '../../supabase/functions/vanhub-chat-confirm/driver_notes_v8.ts'
 
 // Recorded replay must not change meaning when CI crosses midnight. Default to
@@ -76,6 +80,43 @@ for(const c of cases)Deno.test(`recorded extractor replay: ${c.id}`,()=>{
   const r=reduce(j0,f0,c.message,c.objective_before,c.candidate,direct,[])
   if(!r?.j||!r?.f)throw new Error(`${c.id}: reducer returned invalid result`)
   assertCase(c,r)
+})
+
+Deno.test('security: model-only container count cannot replace canonical inventory',()=>{
+  const j0=shape(merge(structuredClone(EMPTY),{category:'courier',inventory:['boxes'],collection:{town:'Leeds'},delivery:{town:'York'}}))
+  const f0=requirements(j0,{})
+  const candidate={facts:[],inventory_add:[{value:'20 boxes',kind:'approximate',evidence:'about 20 boxes'}],heavy_add:[]}
+  const bad=reduce33(j0,f0,'not sure, just a few','clarify_load',candidate,null,[])
+  if((bad.j.inventory||[]).some(x=>norm(x).includes('20 boxes')))throw new Error(`model-only count was promoted: ${JSON.stringify(bad.j.inventory)}`)
+  const good=reduce33(j0,f0,'about 20 boxes','clarify_load',candidate,null,[])
+  if(!(good.j.inventory||[]).some(x=>norm(x).includes('20 boxes')))throw new Error(`literal customer count was not retained: ${JSON.stringify(good.j.inventory)}`)
+})
+
+Deno.test('security: model ISO must match literal absolute customer date',()=>{
+  replayNow=DEFAULT_REPLAY_NOW
+  const j0=shape(structuredClone(EMPTY)),f0=requirements(j0,{})
+  const mk=iso=>({facts:[{k:'date.iso_date',v:iso,kind:'operational',evidence:'5 September'},{k:'date.original_text',v:'5 September',kind:'operational',evidence:'5 September'}],inventory_add:[],heavy_add:[]})
+  const bad=reduce40(j0,f0,'5 September','ask_date',mk('2026-09-06'),null,[])
+  if(bad.j?.date?.iso_date)throw new Error(`mismatched model ISO was promoted: ${bad.j.date.iso_date}`)
+  const good=reduce40(j0,f0,'5 September','ask_date',mk('2026-09-05'),null,[])
+  if(good.j?.date?.iso_date!=='2026-09-05')throw new Error(`matching literal date was not retained: ${good.j?.date?.iso_date}`)
+})
+
+Deno.test('security: complete recovered route replaces stale endpoints only from current route statement',()=>{
+  const j0=shape(merge(structuredClone(EMPTY),{category:'vehicle_transport',collection:{town:'Leeds'},delivery:{town:'York'}})),f0=requirements(j0,{})
+  const candidate={facts:[{k:'specialist.site_access',v:'Manchester to Sheffield',kind:'operational',evidence:'Manchester to Sheffield'}],inventory_add:[],heavy_add:[]}
+  const r=reduce53(j0,f0,'actually it is Manchester to Sheffield','clarify_route',candidate,null,[])
+  if(r.j.collection?.town!=='Manchester'||r.j.delivery?.town!=='Sheffield')throw new Error(`stale route survived: ${r.j.collection?.town} -> ${r.j.delivery?.town}`)
+})
+
+Deno.test('security: endpoint recovery uses token boundaries not substrings',()=>{
+  const j0=shape(merge(structuredClone(EMPTY),{category:'vehicle_transport',delivery:{town:'Leeds'}})),f0=requirements(j0,{})
+  const badCandidate={facts:[{k:'specialist.site_access',v:'ham',kind:'operational',evidence:'ham'}],inventory_add:[],heavy_add:[]}
+  const bad=reduce54(j0,f0,'moving the bike from Birmingham to Leeds','clarify_route',badCandidate,null,[])
+  if(norm(bad.j.collection?.town)==='ham')throw new Error('substring endpoint ham matched Birmingham')
+  const goodCandidate={facts:[{k:'specialist.site_access',v:'Birmingham',kind:'operational',evidence:'Birmingham'}],inventory_add:[],heavy_add:[]}
+  const good=reduce54(j0,f0,'moving the bike from Birmingham to Leeds','clarify_route',goodCandidate,null,[])
+  if(good.j.collection?.town!=='Birmingham')throw new Error(`literal endpoint was not recovered: ${good.j.collection?.town}`)
 })
 
 Deno.test('dismantling prompt does not ask to dismantle a fridge freezer',()=>{
