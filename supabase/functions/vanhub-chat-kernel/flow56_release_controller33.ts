@@ -18,6 +18,14 @@ const DISASSEMBLED=/\b(?:already\s+)?(?:dismantled|disassembled|taken\s+apart)\b
 const PARTS=/\b(?:panels?|sections?|pieces?)\b/i
 
 function literalInMessage(v,message){const a=canon(v),b=canon(message);return !!a&&!!b&&b.includes(a)}
+function esc(v){return String(v||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+function literalContainerCount(message,num,noun){
+  const n=canon(noun).replace(/s$/,'')
+  const nounRe=n==='box'?'box(?:es)?':n==='bag'?'bag(?:s)?':n==='crate'?'crate(?:s)?':null
+  if(!nounRe)return false
+  const numRe=esc(canon(num)).replace(/\s+/g,'\\s*')
+  return new RegExp(`(?:^|\\b)${numRe}\\s*${nounRe}\\b`,'i').test(canon(message))
+}
 function mergeInventory(j,candidate,message,j0,obj){
   j.inventory=Array.isArray(j.inventory)?j.inventory:[]
   const prior=Array.isArray(j0?.inventory)?j0.inventory:[]
@@ -27,9 +35,9 @@ function mergeInventory(j,candidate,message,j0,obj){
     const value=clean(x.value),ev=clean(x.evidence);if(!value||!ev)continue
     let grounded=literalInMessage(value,message)
     if(!grounded&&obj==='clarify_load'&&priorGeneric&&x.kind==='approximate'){
-      const noun=(canon(value).match(/\b(box(?:es)?|bag(?:s)?)\b/)||[])[1]
+      const noun=(canon(value).match(/\b(box(?:es)?|bag(?:s)?|crate(?:s)?)\b/)||[])[1]
       const num=(canon(value).match(/\b\d+(?:\s*(?:-|to)\s*\d+)?\b/)||[])[0]
-      grounded=!!noun&&!!num&&canon(noun).startsWith(priorGeneric.replace(/s$/,''))&&canon(ev).includes(num)
+      grounded=!!noun&&!!num&&canon(noun).startsWith(priorGeneric.replace(/s$/,''))&&literalContainerCount(message,num,noun)
     }
     if(!grounded)continue
     const cv=canon(value);let idx=j.inventory.findIndex(z=>canon(z)===cv);if(idx>=0)continue
