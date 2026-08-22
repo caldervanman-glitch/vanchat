@@ -9,8 +9,9 @@ export const missingContact=base.missingContact
 export const faq=base.faq
 
 const HOUSE=new Set(['house_move','flat_move'])
-const DISMANTLE_FURNITURE=/\b(?:wardrobe|bed|bunk bed|cot|crib|large table|dining table|desk|bookcase|shelving unit|large sofa|sectional sofa|corner sofa)\b/i
+const DISMANTLE_FURNITURE=/\b(?:wardrobes?|beds?|bunk beds?|cots?|cribs?|large tables?|dining tables?|desks?|bookcases?|shelving units?|large sofas?|sectional sofas?|corner sofas?)\b/i
 const CARRY=/\b(\d+(?:\.\d+)?\s*(?:m|metres?|meters?|yards?|ft|feet))\b/i
+const BAD_FRIDGE_DISMANTLE=/For the (?:american )?fridge(?: freezer)?, is it already dismantled, will you take it apart, or should the driver allow for dismantling\?/i
 
 function normaliseCarry(l){
   if(!l||core.clean(l.carry_distance))return
@@ -52,17 +53,17 @@ export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
 }
 
 export function prompt(o,j,amb=null){
-  if(o==='ask_dismantling'&&!HOUSE.has(j?.category)&&!amb){
-    const candidates=(j?.inventory||[]).filter(x=>DISMANTLE_FURNITURE.test(String(x)))
-    if(candidates.length){
-      return `For the ${candidates[0]}, is it already dismantled, will you take it apart, or should the driver allow for dismantling?`
-    }
-    // Fridges/freezers and similar appliances can need doors/handles removed
-    // for access, but asking whether the appliance itself will be "dismantled"
-    // is misleading.
-    return 'Does anything need removing or taking apart for access — for example doors, handles or other removable parts — or is it ready to move as-is?'
-  }
-  return base.prompt(o,j,amb)
+  const actual=base.prompt(o,j,amb)
+  if(o!=='ask_dismantling'||HOUSE.has(j?.category)||amb||!BAD_FRIDGE_DISMANTLE.test(actual))return actual
+
+  const candidates=(j?.inventory||[]).filter(x=>DISMANTLE_FURNITURE.test(String(x)))
+  const replacement=candidates.length
+    ?`For the ${candidates[0]}, is it already dismantled, will you take it apart, or should the driver allow for dismantling?`
+    :'Does anything need removing or taking apart for access — for example doors, handles or other removable parts — or is it ready to move as-is?'
+
+  // Replace only the misleading appliance fragment. Any acknowledgement added
+  // by earlier controllers (lifting help, fit/access, progress, etc.) remains.
+  return actual.replace(BAD_FRIDGE_DISMANTLE,replacement)
 }
 
 export function review(j){
