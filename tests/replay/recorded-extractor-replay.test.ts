@@ -103,7 +103,12 @@ Deno.test('mixed house motorbike asks make/model before condition after date',()
   }))
   const f0=requirements(j0,{})
   const message='29 August at 9am'
-  const r=reduce(j0,f0,message,'ask_date',{},deterministic(message,'ask_date',j0),[])
+  const candidate={facts:[
+    {k:'date.iso_date',v:'2026-08-29',kind:'operational',evidence:'29 August'},
+    {k:'date.original_text',v:'29 August',kind:'operational',evidence:'29 August'},
+    {k:'date.time_preference',v:'9am',kind:'operational',evidence:'9am'}
+  ],category:null,inventory_add:[],heavy_add:[],context_notes:[],safety_flags:[],correction:false,disposition:'continue',ambiguity:null}
+  const r=reduce(j0,f0,message,'ask_date',candidate,deterministic(message,'ask_date',j0),[])
   const next=nextObjective(r.j,r.f)
   if(next!=='ask_vehicle_identity')throw new Error(`expected make/model before condition; got ${next}`)
   const actual=prompt(next,r.j)
