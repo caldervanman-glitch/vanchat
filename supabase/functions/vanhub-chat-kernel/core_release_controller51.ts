@@ -4,7 +4,7 @@ import * as base from './core_release_controller50.ts'
 
 const HOUSE=new Set(['house_move','flat_move'])
 const GOODS=new Set(['house_move','flat_move','single_item','furniture_move','business_delivery','courier','urgent_delivery','equipment_transport','event_transport','motorbike_transport','vehicle_transport','other_transport','waste_transport'])
-const CONTAINER=/\b\d+\s*(?:boxes?|bags?|crates?|cartons?|containers?)\b/i
+const CONTAINER=/\b(?:about|around|roughly|approx(?:imately)?\s+)?\d+\s*(?:loose\s+)?(?:boxes?|bags?|crates?|cartons?|containers?)\b/i
 const NO_CONTAINER=/\b(?:no|zero|none)\s+(?:boxes?|bags?|crates?|cartons?|containers?)\b/i
 const CONTAINER_ITEM=/\b(?:boxes?|bags?|crates?|cartons?|containers?)\b/i
 
@@ -32,9 +32,17 @@ export function houseLoadReady(j){
   if(suspiciouslySmall(j)&&j?.q?.controller_underload_confirmed!==true)return false
   return true
 }
+function localHour(v){
+  const s=base.canon(v)
+  let m=s.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/)
+  if(m&&!/\b(?:am|pm)\b/.test(s))return +m[1]
+  m=s.match(/\b(1[0-2]|0?[1-9])(?::[0-5]\d)?\s*(am|pm)\b/)
+  if(m){let h=+m[1]%12;if(m[2]==='pm')h+=12;return h}
+  return base.hour(v)
+}
 function unusualGoodsTime(j){
   if(!GOODS.has(j?.category))return false
-  const h=base.hour(j?.date?.time_preference)
+  const h=localHour(j?.date?.time_preference)
   return h!=null&&(h>=21||h<6)
 }
 
