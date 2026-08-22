@@ -28,6 +28,23 @@ Deno.test('security migrations use Vault operator token and no raw token literal
   }
 })
 
+Deno.test('operator-token injecting SECURITY DEFINER helpers are service-role only',async()=>{
+  const path='supabase/migrations/20260822113000_lock_operator_auth_helpers.sql'
+  const text=await Deno.readTextFile(path)
+  const helpers=[
+    'private.qa_expectation_invoke(text, integer, integer)',
+    'public.qa_refinery_distill_invoke(text, integer)',
+    'public.qa_refinery_adjudicate_invoke(text)',
+    'public.qa_refinery_adjudicate_sync(text)',
+    'public.qa_vector_fallback_invoke(text, integer, integer)',
+    'public.qa_vector_fallback_invoke_name(text, integer, integer)',
+  ]
+  for(const fn of helpers){
+    if(!text.includes(`revoke all on function ${fn} from public, anon, authenticated`))throw new Error(`${fn}: missing public/anon/authenticated revoke`)
+    if(!text.includes(`grant execute on function ${fn} to service_role`))throw new Error(`${fn}: missing service_role grant`)
+  }
+})
+
 Deno.test('security scan runbook preserves targeted revalidation boundary',async()=>{
   const text=await Deno.readTextFile('security/FINAL_CHATBOT_DELTA_SCAN.md')
   for(const required of ['1c7778f8ed443553f4eed684ddb6dbc7d6fc6b27','Finding 1','Finding 5','$security-diff-scan','<FINAL_FROZEN_HEAD>']){
