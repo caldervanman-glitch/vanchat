@@ -7,11 +7,15 @@ on:
     paths:
       - 'tests/replay/**'
       - 'supabase/functions/vanhub-chat-kernel/**'
+      - 'supabase/functions/vanhub-chat-confirm/**'
+      - 'supabase/functions/vanhub-chat-confirm-candidate/**'
       - '.github/workflows/replay-regressions.yml'
   pull_request:
     paths:
       - 'tests/replay/**'
       - 'supabase/functions/vanhub-chat-kernel/**'
+      - 'supabase/functions/vanhub-chat-confirm/**'
+      - 'supabase/functions/vanhub-chat-confirm-candidate/**'
       - '.github/workflows/replay-regressions.yml'
 
 permissions:
