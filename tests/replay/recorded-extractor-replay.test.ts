@@ -1,7 +1,7 @@
 // @ts-nocheck
 import {EMPTY,shape,requirements,nextObjective,relativeHouseholdValue} from '../../supabase/functions/vanhub-chat-kernel/core_release_controller50.ts'
 import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
-import {reduce,prompt} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller72.ts'
+import {reduce,prompt,review} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller73.ts'
 
 // Recorded replay must not change meaning when CI crosses midnight. Default to
 // the original 21 August release clock; a fixture may supply clock_iso when it
@@ -52,7 +52,7 @@ function assertCase(c,r){
   }
 }
 
-const fixtureFiles=['recorded-extractor-v1.jsonl','recorded-extractor-v2.jsonl','recorded-extractor-v3.jsonl','recorded-extractor-v4.jsonl','recorded-extractor-v5.jsonl','recorded-extractor-v6.jsonl','recorded-extractor-v7.jsonl','recorded-extractor-v8.jsonl','recorded-extractor-v9.jsonl','recorded-extractor-v10.jsonl','recorded-extractor-v11.jsonl','recorded-extractor-v12.jsonl','recorded-extractor-v13.jsonl','recorded-extractor-v14.jsonl','recorded-extractor-v15.jsonl','recorded-extractor-v16.jsonl','recorded-extractor-v17.jsonl','recorded-extractor-v18.jsonl','recorded-extractor-v19.jsonl','recorded-extractor-v20.jsonl','recorded-extractor-v21.jsonl','recorded-extractor-v22.jsonl','recorded-extractor-v23.jsonl','recorded-extractor-v24.jsonl','recorded-extractor-v25.jsonl']
+const fixtureFiles=['recorded-extractor-v1.jsonl','recorded-extractor-v2.jsonl','recorded-extractor-v3.jsonl','recorded-extractor-v4.jsonl','recorded-extractor-v5.jsonl','recorded-extractor-v6.jsonl','recorded-extractor-v7.jsonl','recorded-extractor-v8.jsonl','recorded-extractor-v9.jsonl','recorded-extractor-v10.jsonl','recorded-extractor-v11.jsonl','recorded-extractor-v12.jsonl','recorded-extractor-v13.jsonl','recorded-extractor-v14.jsonl','recorded-extractor-v15.jsonl','recorded-extractor-v16.jsonl','recorded-extractor-v17.jsonl','recorded-extractor-v18.jsonl','recorded-extractor-v19.jsonl','recorded-extractor-v20.jsonl','recorded-extractor-v21.jsonl','recorded-extractor-v22.jsonl','recorded-extractor-v23.jsonl','recorded-extractor-v24.jsonl','recorded-extractor-v25.jsonl','recorded-extractor-v26.jsonl']
 const cases=[]
 for(const file of fixtureFiles){
   const text=await Deno.readTextFile(new URL(`./${file}`,import.meta.url))
@@ -70,6 +70,28 @@ for(const c of cases)Deno.test(`recorded extractor replay: ${c.id}`,()=>{
   const r=reduce(j0,f0,c.message,c.objective_before,c.candidate,direct,[])
   if(!r?.j||!r?.f)throw new Error(`${c.id}: reducer returned invalid result`)
   assertCase(c,r)
+})
+
+Deno.test('dismantling prompt does not ask to dismantle a fridge freezer',()=>{
+  const j=shape(merge(structuredClone(EMPTY),{
+    category:'single_item',
+    inventory:['sofa','two beds','two wardrobes','washing machine','fridge freezer','about 30 bin bags']
+  }))
+  const actual=prompt('ask_dismantling',j)
+  if(/fridge freezer/i.test(actual))throw new Error(`fridge freezer selected for dismantling: ${actual}`)
+  if(!/(bed|wardrobe)/i.test(actual))throw new Error(`expected real furniture dismantling target: ${actual}`)
+})
+
+Deno.test('multi-stop review shows every stored stop',()=>{
+  const j=shape(merge(structuredClone(EMPTY),{
+    category:'furniture_move',
+    inventory:['sofa','dining table'],
+    collection:{town:'Leeds'},
+    delivery:{town:'Manchester'},
+    q:{multi_stop:{collections:['Leeds','Wakefield'],deliveries:['Manchester']}}
+  }))
+  const s=review(j)
+  for(const place of ['Leeds','Wakefield','Manchester'])if(!norm(s.route).includes(norm(place)))throw new Error(`route missing ${place}: ${s.route}`)
 })
 
 Deno.test('relative household pseudo-locations are rejected without substring false positives',()=>{
