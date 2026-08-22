@@ -50,5 +50,5 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Run recorded extractor replay and security boundary tests
-        run: deno test --allow-read --allow-net=raw.githubusercontent.com tests/replay/recorded-extractor-replay.test.ts tests/replay/security-boundaries.test.ts
+      - name: Run recorded extractor replay, security and core-flow tests
+        run: deno test --allow-read --allow-net=raw.githubusercontent.com tests/replay/recorded-extractor-replay.test.ts tests/replay/security-boundaries.test.ts tests/replay/controller75-basic-flow.test.ts
