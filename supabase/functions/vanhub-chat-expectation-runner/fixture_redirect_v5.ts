@@ -3,7 +3,7 @@
 // conversation-fixture fetches to the current clock-safe canonical snapshot.
 // This does not alter chatbot runtime behaviour or expose runner credentials.
 const OLD_REF='7bdeaeba83bd2a23c442c1cf45dd8938d27dca8f'
-const FIXTURE_REF='34a859547eae88734f653be4d806ee78c80cbf68'
+const FIXTURE_REF='8a83417b45b37cf69c2b9098b167d0a42a7e1ede'
 const PREFIX=`https://raw.githubusercontent.com/caldervanman-glitch/vanchat/${OLD_REF}/tests/conversation/`
 const nativeFetch=globalThis.fetch.bind(globalThis)
 globalThis.fetch=(input:any,init?:any)=>{
