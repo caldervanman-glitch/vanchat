@@ -1,7 +1,8 @@
 // @ts-nocheck
 import {EMPTY,shape,requirements,nextObjective,relativeHouseholdValue} from '../../supabase/functions/vanhub-chat-kernel/core_release_controller50.ts'
 import {deterministic} from '../../supabase/functions/vanhub-chat-kernel/parser_direct56.ts'
-import {reduce,prompt,review} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller73.ts'
+import {reduce,prompt,review} from '../../supabase/functions/vanhub-chat-kernel/flow56_release_controller74.ts'
+import {driverRiskNotes,mergeDriverNotes} from '../../supabase/functions/vanhub-chat-confirm/driver_notes_v7.ts'
 
 // Recorded replay must not change meaning when CI crosses midnight. Default to
 // the original 21 August release clock; a fixture may supply clock_iso when it
@@ -34,6 +35,11 @@ function assertCase(c,r){
       if(!joined.includes(norm(v)))throw new Error(`${c.id}: inventory missing ${v}; actual=${joined}`)
       continue
     }
+    if(k.startsWith('driver_notes_contains')){
+      const joined=(r.j?.q?.driver_notes||[]).map(norm).join(' | ')
+      if(!joined.includes(norm(v)))throw new Error(`${c.id}: driver notes missing ${v}; actual=${joined}`)
+      continue
+    }
     if(k==='q.assistance_detail_contains'){
       if(!norm(r.j?.q?.assistance_detail).includes(norm(v)))throw new Error(`${c.id}: assistance detail missing ${v}; actual=${r.j?.q?.assistance_detail}`)
       continue
@@ -52,7 +58,7 @@ function assertCase(c,r){
   }
 }
 
-const fixtureFiles=['recorded-extractor-v1.jsonl','recorded-extractor-v2.jsonl','recorded-extractor-v3.jsonl','recorded-extractor-v4.jsonl','recorded-extractor-v5.jsonl','recorded-extractor-v6.jsonl','recorded-extractor-v7.jsonl','recorded-extractor-v8.jsonl','recorded-extractor-v9.jsonl','recorded-extractor-v10.jsonl','recorded-extractor-v11.jsonl','recorded-extractor-v12.jsonl','recorded-extractor-v13.jsonl','recorded-extractor-v14.jsonl','recorded-extractor-v15.jsonl','recorded-extractor-v16.jsonl','recorded-extractor-v17.jsonl','recorded-extractor-v18.jsonl','recorded-extractor-v19.jsonl','recorded-extractor-v20.jsonl','recorded-extractor-v21.jsonl','recorded-extractor-v22.jsonl','recorded-extractor-v23.jsonl','recorded-extractor-v24.jsonl','recorded-extractor-v25.jsonl','recorded-extractor-v26.jsonl']
+const fixtureFiles=['recorded-extractor-v1.jsonl','recorded-extractor-v2.jsonl','recorded-extractor-v3.jsonl','recorded-extractor-v4.jsonl','recorded-extractor-v5.jsonl','recorded-extractor-v6.jsonl','recorded-extractor-v7.jsonl','recorded-extractor-v8.jsonl','recorded-extractor-v9.jsonl','recorded-extractor-v10.jsonl','recorded-extractor-v11.jsonl','recorded-extractor-v12.jsonl','recorded-extractor-v13.jsonl','recorded-extractor-v14.jsonl','recorded-extractor-v15.jsonl','recorded-extractor-v16.jsonl','recorded-extractor-v17.jsonl','recorded-extractor-v18.jsonl','recorded-extractor-v19.jsonl','recorded-extractor-v20.jsonl','recorded-extractor-v21.jsonl','recorded-extractor-v22.jsonl','recorded-extractor-v23.jsonl','recorded-extractor-v24.jsonl','recorded-extractor-v25.jsonl','recorded-extractor-v26.jsonl','recorded-extractor-v27.jsonl']
 const cases=[]
 for(const file of fixtureFiles){
   const text=await Deno.readTextFile(new URL(`./${file}`,import.meta.url))
@@ -82,6 +88,28 @@ Deno.test('dismantling prompt does not ask to dismantle a fridge freezer',()=>{
   if(!/(bed|wardrobe)/i.test(actual))throw new Error(`expected real furniture dismantling target: ${actual}`)
 })
 
+Deno.test('dismantling or reassembly can suggest a non-mandatory image',()=>{
+  const j=shape(merge(structuredClone(EMPTY),{category:'furniture_move',inventory:['large double wardrobe'],dismantling_required:true,q:{dismantling_mode:'driver'}}))
+  const actual=prompt('ask_reassembly',j)
+  if(!/upload a photo/i.test(actual)||!/not required/i.test(actual))throw new Error(`missing optional photo guidance: ${actual}`)
+})
+
+Deno.test('mixed house motorbike asks make/model before condition after date',()=>{
+  const j0=shape(merge(structuredClone(EMPTY),{
+    category:'house_move',job_type:'house_move',
+    collection:{town:'Huddersfield'},delivery:{town:'Manchester'},
+    inventory:['two bedrooms, all boxed'],heavy_or_awkward_items:['motorbike, 125cc'],
+    q:{notable:'motorbike included',packing:'all boxed',vehicle:{identity:'got my'}}
+  }))
+  const f0=requirements(j0,{})
+  const message='29 August at 9am'
+  const r=reduce(j0,f0,message,'ask_date',{},deterministic(message,'ask_date',j0),[])
+  const next=nextObjective(r.j,r.f)
+  if(next!=='ask_vehicle_identity')throw new Error(`expected make/model before condition; got ${next}`)
+  const actual=prompt(next,r.j)
+  if(!/make\/model|make.*model/i.test(actual))throw new Error(`identity prompt missing make/model: ${actual}`)
+})
+
 Deno.test('multi-stop review shows every stored stop',()=>{
   const j=shape(merge(structuredClone(EMPTY),{
     category:'furniture_move',
@@ -92,6 +120,18 @@ Deno.test('multi-stop review shows every stored stop',()=>{
   }))
   const s=review(j)
   for(const place of ['Leeds','Wakefield','Manchester'])if(!norm(s.route).includes(norm(place)))throw new Error(`route missing ${place}: ${s.route}`)
+})
+
+Deno.test('confirm-note projection includes route, appliance and exact driver-risk notes',()=>{
+  const j=shape(merge(structuredClone(EMPTY),{
+    q:{
+      multi_stop:{collections:['Leeds','Wakefield'],deliveries:['Manchester']},
+      appliances:{present:'yes',disconnected:'no',reconnect_requested:'yes'},
+      driver_notes:['Customer said: "loads of us helping" — lifting help needs direct qualification with the customer.']
+    }
+  }))
+  const actual=mergeDriverNotes(driverRiskNotes(j))||''
+  for(const piece of ['Leeds','Wakefield','Manchester','not insured or willing','loads of us helping'])if(!norm(actual).includes(norm(piece)))throw new Error(`driver projection missing ${piece}: ${actual}`)
 })
 
 Deno.test('relative household pseudo-locations are rejected without substring false positives',()=>{
