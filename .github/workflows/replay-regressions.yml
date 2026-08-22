@@ -7,6 +7,7 @@ on:
     paths:
       - 'tests/replay/**'
       - 'security/FINAL_CHATBOT_DELTA_SCAN.md'
+      - 'security/FINAL_SECURITY_DELTA_SCAN_INSTRUCTIONS.md'
       - 'supabase/functions/vanhub-chat-kernel/**'
       - 'supabase/functions/vanhub-chat-confirm/**'
       - 'supabase/functions/vanhub-chat-confirm-candidate/**'
@@ -17,11 +18,13 @@ on:
       - 'supabase/functions/vanhub-refinery-adjudicate/**'
       - 'supabase/migrations/*security_operator_auth_helpers.sql'
       - 'supabase/migrations/*security_operator_auth_bearer_headers.sql'
+      - 'supabase/migrations/*lock_operator_auth_helpers.sql'
       - '.github/workflows/replay-regressions.yml'
   pull_request:
     paths:
       - 'tests/replay/**'
       - 'security/FINAL_CHATBOT_DELTA_SCAN.md'
+      - 'security/FINAL_SECURITY_DELTA_SCAN_INSTRUCTIONS.md'
       - 'supabase/functions/vanhub-chat-kernel/**'
       - 'supabase/functions/vanhub-chat-confirm/**'
       - 'supabase/functions/vanhub-chat-confirm-candidate/**'
@@ -32,6 +35,7 @@ on:
       - 'supabase/functions/vanhub-refinery-adjudicate/**'
       - 'supabase/migrations/*security_operator_auth_helpers.sql'
       - 'supabase/migrations/*security_operator_auth_bearer_headers.sql'
+      - 'supabase/migrations/*lock_operator_auth_helpers.sql'
       - '.github/workflows/replay-regressions.yml'
 
 permissions:
