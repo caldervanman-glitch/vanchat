@@ -38,9 +38,13 @@ function applianceClause(message){
 function bikePresent(j,message){return BIKE.test(String(message||''))||BIKE.test([...(j?.inventory||[]),...(j?.heavy_or_awkward_items||[]),j?.q?.notable].filter(Boolean).join(' '))}
 function usefulBikeIdentity(v){
   const s=norm(v);if(!s)return false
+  // A genuine compact model code (e.g. CBR345 / MT07) is useful even if the
+  // make is omitted. Capacity-only values such as 125cc are not identity.
+  const compact=s.replace(/\s+/g,'')
+  if(/^(?=.*[a-z])(?=.*\d)[a-z0-9-]{4,}$/i.test(compact)&&!/^\d+cc$/i.test(compact))return true
   const tokens=s.split(/[^a-z0-9]+/).filter(Boolean).filter(x=>!['a','an','the','my','our','got','have','has','bike','motorbike','motorcycle','scooter','moped','vehicle'].includes(x)&&!/^\d+cc$/.test(x)&&x!=='cc')
-  // Require make + model (or equivalent two-part identity). Capacity alone,
-  // pronouns and phrases such as "got my" must never close this gate.
+  // Otherwise require a make + model style two-part identity. Pronouns and
+  // phrases such as "got my" must never close this gate.
   return tokens.length>=2
 }
 function explicitAccessSide(message){
@@ -75,9 +79,10 @@ export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
     pushDriverNote(j,`Customer access statement: "${access}".${suffix}`)
   }
 
-  // Mixed house/flat moves must ask make/model before vehicle condition. Human
-  // QA caught the parser storing "got my" as a motorbike identity from
-  // "got my motorbike ... 125cc". Reject that sort of pseudo-identity.
+  // Mixed house/flat moves must establish a real motorbike identity before
+  // condition. Human QA caught the parser storing "got my" from
+  // "got my motorbike ... 125cc" as identity. Reject only pseudo/generic
+  // identity; retain genuine model codes and make/model evidence.
   if(HOUSE.has(j?.category)&&bikePresent(j,message)&&!usefulBikeIdentity(j?.q?.vehicle?.identity)){
     if(j?.q?.vehicle)j.q.vehicle.identity=null
     if(r.f)r.f['vehicle.identity']='missing'
