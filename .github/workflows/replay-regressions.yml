@@ -9,6 +9,12 @@ on:
       - 'supabase/functions/vanhub-chat-kernel/**'
       - 'supabase/functions/vanhub-chat-confirm/**'
       - 'supabase/functions/vanhub-chat-confirm-candidate/**'
+      - 'supabase/functions/vanhub-chat-expectation-runner/**'
+      - 'supabase/functions/vanhub-vector-audit/**'
+      - 'supabase/functions/vanhub-vector-audit-fallback/**'
+      - 'supabase/functions/vanhub-vector-distill/**'
+      - 'supabase/functions/vanhub-refinery-adjudicate/**'
+      - 'supabase/migrations/*security_operator_auth_helpers.sql'
       - '.github/workflows/replay-regressions.yml'
   pull_request:
     paths:
@@ -16,6 +22,12 @@ on:
       - 'supabase/functions/vanhub-chat-kernel/**'
       - 'supabase/functions/vanhub-chat-confirm/**'
       - 'supabase/functions/vanhub-chat-confirm-candidate/**'
+      - 'supabase/functions/vanhub-chat-expectation-runner/**'
+      - 'supabase/functions/vanhub-vector-audit/**'
+      - 'supabase/functions/vanhub-vector-audit-fallback/**'
+      - 'supabase/functions/vanhub-vector-distill/**'
+      - 'supabase/functions/vanhub-refinery-adjudicate/**'
+      - 'supabase/migrations/*security_operator_auth_helpers.sql'
       - '.github/workflows/replay-regressions.yml'
 
 permissions:
