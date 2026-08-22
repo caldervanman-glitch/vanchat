@@ -50,6 +50,23 @@ function usefulBikeIdentity(v){
 function explicitAccessSide(message){
   return /\b(?:collection|collect(?:ion)?|pickup|pick[- ]?up|delivery|deliver(?:y)?|drop[- ]?off|at collection|at delivery)\b/i.test(String(message||''))
 }
+function addRisk(s,text){
+  const t=clean(text);if(!t)return
+  s.quote_risks=arr(s.quote_risks)
+  if(!s.quote_risks.some(x=>norm(x)===norm(t)))s.quote_risks.push(t)
+}
+function vehicleRisk(j){
+  const v=j?.q?.vehicle||{},bits=[]
+  if(clean(v.identity))bits.push(`identity ${v.identity}`)
+  for(const [label,k] of [['runs','runs'],['rolls','rolls'],['steers','steers'],['brakes','brakes'],['keys available','keys'],['fuel leak','fuel_leak'],['oil leak','oil_leak']])if(clean(v[k]))bits.push(`${label}: ${v[k]}`)
+  if(clean(v.loading))bits.push(`loading: ${v.loading}`)
+  return bits.length?`Vehicle/motorbike details: ${bits.join('; ')}`:null
+}
+function specialistRisk(j){
+  const q=j?.q?.specialist||{},bits=[]
+  for(const [label,k] of [['quantity','quantity'],['dimensions','dimensions'],['weight','weight'],['packaging','packaging'],['loading','loading'],['unloading','unloading'],['site access','site_access'],['deadline','deadline'],['ready','ready'],['return leg','return_leg'],['handling','handling']])if(clean(q[k]))bits.push(`${label}: ${q[k]}`)
+  return bits.length?`Specialist job details: ${bits.join('; ')}`:null
+}
 
 export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
   const r=base.reduce(j0,f0,message,obj,candidate,direct,media),j=r.j
@@ -102,6 +119,10 @@ export function prompt(o,j,amb=null){
 
 export function review(j){
   const s=base.review(j),notes=arr(j?.q?.driver_notes).map(clean).filter(Boolean)
-  if(notes.length)s.quote_risks=[...(s.quote_risks||[]),...notes]
+  for(const n of notes)addRisk(s,n)
+  addRisk(s,vehicleRisk(j))
+  addRisk(s,specialistRisk(j))
+  if(clean(j?.q?.safe))addRisk(s,`Safe details: ${j.q.safe}`)
+  if(clean(j?.q?.completion))addRisk(s,`Completion-day details: ${j.q.completion}`)
   return s
 }
