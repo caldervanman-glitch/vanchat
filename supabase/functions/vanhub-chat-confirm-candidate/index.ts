@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.95.0"
-import { mergeDriverNotes, driverRiskNotes } from "../vanhub-chat-confirm/driver_notes_v7.ts"
+import { mergeDriverNotes, driverRiskNotes } from "../vanhub-chat-confirm/driver_notes_v8.ts"
 
 const ORIGINS=new Set(["https://vanhubuk.com","https://www.vanhubuk.com"])
 function allowed(o:string|null){return !o||ORIGINS.has(o)||/^https:\/\/(?:[a-z0-9-]+\.)?framer\.com$/i.test(o)||/^https:\/\/[a-z0-9-]+\.(framer\.app|framer\.website)$/i.test(o)||/^https:\/\/[a-z0-9.-]+\.(framerusercontent|framercanvas)\.com$/i.test(o)||/^http:\/\/localhost(?::\d+)?$/i.test(o)}
@@ -30,7 +30,7 @@ Deno.serve(async req=>{
     const s=await sb.from("intake_sessions").select("id,status").eq("id",sessionId).maybeSingle()
     if(s.error)throw s.error
     if(!s.data)return json(o,404,{error:"Session not found"})
-    const d=await sb.from("job_drafts").select("id,status,ready_for_review,job_data,job_id").eq("session_id",sessionId).maybeSingle()
+    const d=await sb.from("job_drafts").select("id,status,ready_for_review,job_data,review_summary,job_id").eq("session_id",sessionId).maybeSingle()
     if(d.error)throw d.error
     if(!d.data)return json(o,404,{error:"Job draft not found"})
     if(!d.data.ready_for_review)return json(o,409,{error:"Job is not ready for confirmation"})
@@ -40,7 +40,7 @@ Deno.serve(async req=>{
       return json(o,200,{status:"confirmed",sessionId:s.data.id,draftId:d.data.id,jobId:d.data.job_id,publicReference:jr.data?.public_reference||null,boardStatus:jr.data?.status||null,live,message:statusMessage(jr.data?.status,live,null)})
     }
     const j=d.data.job_data,cp=String(j?.collection?.postcode||"").trim(),dp=String(j?.delivery?.postcode||"").trim(),[cg,dg]=await Promise.all([cp?geo(cp):null,dp?geo(dp):null]),email=j?.customer?.email?String(j.customer.email).trim().toLowerCase():null
-    const payload={email,email_hash:email?await sha256(email):null,poster_name:j?.customer?.name||null,poster_phone:j?.customer?.phone||null,title:j?.title||null,category:j?.category||"other_transport",collection_postcode:cg?.postcode||cp,collection_outward_postcode:cg?.outcode||cp,collection_town:j?.collection?.town||null,collection_latitude:cg?.latitude??null,collection_longitude:cg?.longitude??null,delivery_postcode:dg?.postcode||dp||null,delivery_outward_postcode:dg?.outcode||dp||null,delivery_town:j?.delivery?.town||null,delivery_latitude:dg?.latitude??null,delivery_longitude:dg?.longitude??null,job_date:j?.date?.iso_date||null,time_window:j?.date?.time_preference||"Flexible",date_flexible:hasDateFlex(j),load_summary_public:load(j),vehicle_type:j?.vehicle_type||"not_sure",people_needed:j?.men_required??null,access_notes_public:mergeDriverNotes(access(j),driverRiskNotes(j)),private_notes:j?.additional_notes||null,idempotency_key:d.data.id}
+    const payload={email,email_hash:email?await sha256(email):null,poster_name:j?.customer?.name||null,poster_phone:j?.customer?.phone||null,title:j?.title||null,category:j?.category||"other_transport",collection_postcode:cg?.postcode||cp,collection_outward_postcode:cg?.outcode||cp,collection_town:j?.collection?.town||null,collection_latitude:cg?.latitude??null,collection_longitude:cg?.longitude??null,delivery_postcode:dg?.postcode||dp||null,delivery_outward_postcode:dg?.outcode||dp||null,delivery_town:j?.delivery?.town||null,delivery_latitude:dg?.latitude??null,delivery_longitude:dg?.longitude??null,job_date:j?.date?.iso_date||null,time_window:j?.date?.time_preference||"Flexible",date_flexible:hasDateFlex(j),load_summary_public:load(j),vehicle_type:j?.vehicle_type||"not_sure",people_needed:j?.men_required??null,access_notes_public:mergeDriverNotes(access(j),driverRiskNotes(j,d.data.review_summary)),private_notes:j?.additional_notes||null,idempotency_key:d.data.id}
     const cr=await sb.rpc("create_chatbot_job_internal",{p_payload:payload,p_draft_id:d.data.id})
     if(cr.error){logError("confirm_create_job_rpc_failed",cr.error,{sessionId:s.data.id,draftId:d.data.id});return json(o,400,{error:"We couldn't confirm that job - please check the details and try again."})}
     if(!cr.data?.accepted){logError("confirm_create_job_not_accepted",new Error("create_chatbot_job_internal returned accepted=false"),{sessionId:s.data.id,draftId:d.data.id});return json(o,400,{error:"That job could not be posted right now. Please try again shortly."})}
