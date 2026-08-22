@@ -6,6 +6,7 @@ on:
       - fix/mixed-load-specialists-v48
     paths:
       - 'tests/replay/**'
+      - 'security/FINAL_CHATBOT_DELTA_SCAN.md'
       - 'supabase/functions/vanhub-chat-kernel/**'
       - 'supabase/functions/vanhub-chat-confirm/**'
       - 'supabase/functions/vanhub-chat-confirm-candidate/**'
@@ -15,10 +16,12 @@ on:
       - 'supabase/functions/vanhub-vector-distill/**'
       - 'supabase/functions/vanhub-refinery-adjudicate/**'
       - 'supabase/migrations/*security_operator_auth_helpers.sql'
+      - 'supabase/migrations/*security_operator_auth_bearer_headers.sql'
       - '.github/workflows/replay-regressions.yml'
   pull_request:
     paths:
       - 'tests/replay/**'
+      - 'security/FINAL_CHATBOT_DELTA_SCAN.md'
       - 'supabase/functions/vanhub-chat-kernel/**'
       - 'supabase/functions/vanhub-chat-confirm/**'
       - 'supabase/functions/vanhub-chat-confirm-candidate/**'
@@ -28,6 +31,7 @@ on:
       - 'supabase/functions/vanhub-vector-distill/**'
       - 'supabase/functions/vanhub-refinery-adjudicate/**'
       - 'supabase/migrations/*security_operator_auth_helpers.sql'
+      - 'supabase/migrations/*security_operator_auth_bearer_headers.sql'
       - '.github/workflows/replay-regressions.yml'
 
 permissions:
@@ -42,5 +46,5 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Run recorded extractor replay tests
-        run: deno test --allow-read --allow-net=raw.githubusercontent.com tests/replay/recorded-extractor-replay.test.ts
+      - name: Run recorded extractor replay and security boundary tests
+        run: deno test --allow-read --allow-net=raw.githubusercontent.com tests/replay/recorded-extractor-replay.test.ts tests/replay/security-boundaries.test.ts
