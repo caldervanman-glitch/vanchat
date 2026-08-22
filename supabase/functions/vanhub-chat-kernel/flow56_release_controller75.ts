@@ -21,7 +21,7 @@ const UNDERLOAD_CONFIRM=/\b(?:mostly empty|genuinely everything|that(?:'s| is) e
 const FLEX_TIME=/\b(?:timing (?:is )?flexible|any\s*time|anytime|no (?:time )?preference|whenever|flexible(?: any time)?)\b/i
 const YES_CONFIRM=/\b(?:yes|yeah|yep|correct|exactly|that's right|that is right|definitely)\b/i
 const STRONG_ACCESS=/\b(?:stairs?|steps?|floor|lift|elevator|parking|park(?:ing)?|carry|roadworks?|loading bay|double yellow|single yellow|permit|doorway|entrance|property access|long carry)\b/i
-const FURN_DIM=/\b(?:wardrobe|cabinet|dresser|table|bed|sofa)\b.{0,60}\b(?:\d+(?:\.\d+)?\s*(?:m|metres?|meters?|cm|centimetres?|centimeters?|ft|feet)|(?:three|four|five|six|3|4|5|6)[ -]?door)\b|\b(?:three|four|five|six|3|4|5|6)[ -]?door\b.{0,40}\b(?:wardrobe|cabinet)\b/i
+const FURN_DIM=/\b(?:wardrobe|cabinet|dresser|table|bed|sofa)\b.{0,60}\b(?:\d+(?:\.\d+)?\s*(?:m|metres?|meters?|cm|centimetres?|centimeters?|ft|feet)|(?:three|four|five|six|3|4|5|6)[ -]?doors?)\b|\b(?:three|four|five|six|3|4|5|6)[ -]?doors?\b.{0,40}\b(?:wardrobe|cabinet)\b/i
 const PLAUSIBLE_DISMANTLE=/\b(?:wardrobes?|bed frames?|beds?|bunk beds?|cots?|cribs?|dining tables?|large tables?|desks?|bookcases?|shelving units?|corner sofas?|sectional sofas?)\b/i
 const SOFA_BED=/\bsofa beds?\b/i
 const ACCESS_FIELDS=['floor','stairs','lift','parking','internal_stairs','external_steps','carry_distance','access_notes']
@@ -39,7 +39,7 @@ const ITEM_PATTERNS=[
   /\b(?:fridge freezer|fridge freezers|american fridge freezer|fridge|freezer)\b/gi,
   /\b(?:upright piano|baby grand piano|grand piano|digital piano|piano)\b/gi,
   /\b(?:chest of drawers|chests of drawers|drawers|dresser|dressers|sideboard|sideboards|bookcase|bookcases|desk|desks|armchair|armchairs|tv|television|televisions)\b/gi,
-  new RegExp(`\\b${NUMBER_WORD}\\s+(?:boxes?|bags?|crates?|cartons?)\\b`,'gi'),
+  new RegExp(`\\b(?:(?:about|around|roughly|approx(?:imately)?)\\s+)?${NUMBER_WORD}\\s+(?:loose\\s+)?(?:boxes?|bags?|crates?|cartons?)\\b`,'gi'),
 ]
 
 const clean=v=>core.clean(v)
@@ -69,7 +69,7 @@ function usefulBikeIdentity(v){
 function bikePresent(j,message){return BIKE.test(String(message||''))||BIKE.test([...arr(j?.inventory),...arr(j?.heavy_or_awkward_items),j?.q?.notable].filter(Boolean).join(' '))}
 function bikeConditionKnown(j){const v=j?.q?.vehicle||{};return ['runs','rolls','steers','brakes','fuel_leak'].every(k=>['yes','no'].includes(v[k]))}
 function propertyScale(message){
-  const m=String(message||'').match(/\b(\d+|one|two|three|four|five|six)\s*(?:bed|bedroom)s?\s+(?:house|flat|home|property)\b/i)||String(message||'').match(/\b(\d+|one|two|three|four|five|six)\s*(?:bed|bedroom)s?\b/i)
+  const m=String(message||'').match(/\b(\d+|one|two|three|four|five|six)\s*(?:bed|bedroom)s?\s+(?:house|flat|home|property)\b/i)
   if(!m)return null
   const words={one:1,two:2,three:3,four:4,five:5,six:6}
   return {text:quote(m[0]),count:Number(m[1])||words[String(m[1]).toLowerCase()]||null}
@@ -80,10 +80,7 @@ function fallbackInventory(message){
   return ded(out)
 }
 function mainItems(j){return arr(j?.inventory).filter(x=>!/\b(?:boxes?|bags?|crates?|cartons?|containers?)\b/i.test(String(x))&&!core.vague(x))}
-function knownInventorySummary(j){
-  const xs=arr(j?.inventory).filter(x=>!core.vague(x)).slice(0,8)
-  return xs.join(', ')
-}
+function knownInventorySummary(j){return arr(j?.inventory).filter(x=>!core.vague(x)).slice(0,9).join(', ')}
 function extractRoute(message){
   const m=String(message||'').match(/\bfrom\s+([A-Za-z][A-Za-z' .-]{1,40}?)\s+to\s+([A-Za-z][A-Za-z' .-]{1,40}?)(?=\s+(?:today|tomorrow|tonight|next|this|any|on|at|around|with|there|for|and\b)|[,.!?;]|$)/i)
   if(!m)return null
@@ -93,8 +90,7 @@ function extractRoute(message){
 }
 function explicitAssembly(message,j){
   const s=String(message||'')
-  const driver=/(?:driver|movers?|removal team).{0,45}(?:dismantl|disassembl|take(?:n)? apart)|(?:dismantl|disassembl|take(?:n)? apart).{0,45}(?:by|for|allow for) (?:the )?(?:driver|movers?|removal team)|(?:need|needs|require|required).{0,35}(?:dismantl|disassembl).{0,35}(?:driver|movers?)/i.test(s)
-    ||/\bdriver should allow for dismantling\b/i.test(s)
+  const driver=/(?:driver|movers?|removal team).{0,45}(?:dismantl|disassembl|take(?:n)? apart)|(?:dismantl|disassembl|take(?:n)? apart).{0,45}(?:by|for|allow for) (?:the )?(?:driver|movers?|removal team)|(?:need|needs|require|required).{0,35}(?:dismantl|disassembl).{0,35}(?:driver|movers?)/i.test(s)||/\bdriver should allow for dismantling\b/i.test(s)
   const customer=/(?:i|we|customer|seller).{0,35}(?:will|can|shall|going to).{0,20}(?:dismantl|disassembl|take apart)/i.test(s)
   const already=/\b(?:already (?:apart|dismantled|disassembled)|beds? are already apart|already taken apart)\b/i.test(s)
   if(driver){j.q.dismantling_mode='driver';j.dismantling_required=true}
@@ -106,16 +102,9 @@ function explicitAssembly(message,j){
   else if(reassemblyNo)j.reassembly_required=false
   if(driver||customer||already||reassemblyYes||reassemblyNo)pushDriverNote(j,`Customer dismantling/reassembly statement: "${quote(message)}".`)
 }
-function plausibleDismantle(j){
-  return arr(j?.inventory).some(x=>{
-    const s=String(x||'')
-    if(SOFA_BED.test(s))return false
-    return PLAUSIBLE_DISMANTLE.test(s)
-  })
-}
+function plausibleDismantle(j){return arr(j?.inventory).some(x=>{const s=String(x||'');if(SOFA_BED.test(s))return false;return PLAUSIBLE_DISMANTLE.test(s)})}
 function furnitureDetail(message){
   const s=String(message||'')
-  if(!/\bwardrobe\b/i.test(s)&&!/(?:door|metres?|meters?|cm|feet|ft)/i.test(s))return null
   const door=s.match(/\b(?:three|four|five|six|3|4|5|6)[ -]?door(?:s)?(?:\s+wide)?\b/i)
   const dims=[...s.matchAll(/\b\d+(?:\.\d+)?\s*(?:m|metres?|meters?|cm|centimetres?|centimeters?|ft|feet)\b/gi)].map(x=>x[0])
   if(!door&&!dims.length)return null
@@ -123,7 +112,7 @@ function furnitureDetail(message){
 }
 function clearFalseFurnitureAccess(j,j0,message,obj){
   if(obj!=='ask_furniture'||!FURN_DIM.test(String(message||''))||STRONG_ACCESS.test(String(message||'')))return
-  for(const side of ['collection','delivery'])for(const k of ACCESS_FIELDS){if(norm(j?.[side]?.[k])!==norm(j0?.[side]?.[k]))j[side][k]=j0?.[side]?.[k]??null}
+  for(const side of ['collection','delivery'])for(const k of ACCESS_FIELDS)j[side][k]=structuredClone(j0?.[side]?.[k]??null)
   const prior=new Set(arr(j0?.q?.driver_notes).map(norm))
   j.q.driver_notes=arr(j.q.driver_notes).filter(n=>prior.has(norm(n))||!/Customer access statement:/i.test(String(n)))
 }
@@ -148,43 +137,22 @@ function syncMultiStopAccess(j,j0,message){
     for(const [field,re] of Object.entries(fieldTerms)){
       const intermediateHas=intermediate.some(s=>re.test(notes[s]||''))
       const primaryHas=re.test(pnote)
-      if(intermediateHas&&!primaryHas&&norm(j?.[side]?.[field])!==norm(j0?.[side]?.[field]))j[side][field]=j0?.[side]?.[field]??null
+      if(intermediateHas&&!primaryHas)j[side][field]=structuredClone(j0?.[side]?.[field]??null)
     }
   }
 }
-function refreshHouseGate(j,r,message){
-  if(!HOUSE.has(j?.category))return
-  j.q.controller_accuracy_gate=true
-  const scale=propertyScale(message)
-  if(scale){j.q.controller_property_scale=scale.text;j.q.controller_bedrooms=scale.count}
-  if(COMPLETE_LOAD.test(message))j.q.controller_inventory_complete=true
-  if(NO_CONTAINERS.test(message))j.q.controller_no_containers=true
-  if(j0Underload(j)&&UNDERLOAD_CONFIRM.test(message))j.q.controller_underload_confirmed=true
-  const ready=core.houseLoadReady(j)
-  r.f.volume=ready?'known':'missing'
-  const b=Number(j.q.controller_bedrooms)||0,m=mainItems(j).length
-  const suspicious=(b>=4&&m<6)||(b===3&&m<5)||(b===2&&m<3)
-  j.q.controller_underload_needed=!!(j.q.controller_inventory_complete&&suspicious&&!j.q.controller_underload_confirmed)
-}
-function j0Underload(j){return j?.q?.controller_underload_needed===true||j?.q?.controller_inventory_complete===true}
 
 export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
   const r=base.reduce(j0,f0,message,obj,candidate,direct,media),j=r.j
   j.q??={}
   if(j0?.q?.controller_customer_ack)delete j.q.controller_customer_ack
 
-  // Deterministic fallback for clearly stated household items. This does not
-  // guess volume; it only preserves literal nouns/quantities the customer said.
   const fallback=fallbackInventory(message)
   if(fallback.length)j.inventory=ded([...arr(j.inventory),...fallback])
 
-  // Recover an explicit opener route even while the bot is still clarifying a
-  // vague load. The prior flow was dropping "from Hull to Doncaster" simply
-  // because inventory had not yet been qualified.
   const route=extractRoute(message)
   if(route){j.collection.town=route.collection;j.delivery.town=route.delivery;r.f['collection.location']='known';r.f['delivery.location']='known'}
 
-  // A multi-item household/furniture load must never remain single_item.
   if(j.category==='single_item'&&mainItems(j).length>=2)j.category='furniture_move'
 
   const help=String(message||'').match(VAGUE_HELP)?.[0]
@@ -204,21 +172,11 @@ export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
   explicitAssembly(message,j)
 
   const fd=furnitureDetail(message)
-  if(obj==='ask_furniture'&&fd){
-    j.q.controller_furniture_detail=fd
-    r.f.furniture='known'
-    pushDriverNote(j,`Furniture size/detail supplied by customer: "${quote(message)}".`)
-  }
+  if(obj==='ask_furniture'&&fd){j.q.controller_furniture_detail=fd;r.f.furniture='known';pushDriverNote(j,`Furniture size/detail supplied by customer: "${quote(message)}".`)}
   clearFalseFurnitureAccess(j,j0,message,obj)
 
-  if(obj==='ask_time'&&FLEX_TIME.test(message)){
-    j.date.time_preference='flexible'
-    r.f.time='known'
-  }
-  if(obj==='confirm_unusual_time'&&YES_CONFIRM.test(message)){
-    j.q.unusual_time_confirmed=true
-    r.f.unusual_time='known'
-  }
+  if(obj==='ask_time'&&FLEX_TIME.test(message)){j.date.time_preference='flexible';r.f.time='known'}
+  if(obj==='confirm_unusual_time'&&YES_CONFIRM.test(message)){j.q.unusual_time_confirmed=true;r.f.unusual_time='known'}
 
   if(INJECTION.test(message))j.q.controller_customer_ack='Thanks for the information. I still need a few job details so drivers can quote it accurately.'
 
@@ -227,8 +185,6 @@ export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
     r.f['vehicle.condition']=bikeConditionKnown(j)?'known':'missing'
   }
 
-  // Sofa beds normally move as complete items. Do not invent a dismantling job
-  // merely because the phrase contains the word "bed".
   if(!plausibleDismantle(j)&&!clean(j?.q?.dismantling_mode)){
     if(!HOUSE.has(j?.category)||j.q?.controller_inventory_complete===true){r.f.dismantling='na';r.f.reassembly='na'}
   }
@@ -250,8 +206,6 @@ export function reduce(j0,f0,message,obj,candidate={},direct=null,media=[]){
     r.f.volume=core.houseLoadReady(j)?'known':'missing'
   }
 
-  // Recalculate broad requirement state after deterministic corrections, then
-  // preserve the controller-specific overrides above.
   const overrides={...r.f}
   r.f=core.requirements(j,r.f)
   for(const k of ['vehicle.identity','vehicle.condition','dismantling','reassembly','furniture','time','unusual_time','volume'])if(overrides[k]!==undefined)r.f[k]=overrides[k]
@@ -275,9 +229,7 @@ function houseVolumePrompt(j){
 
 export function prompt(o,j,amb=null){
   let actual=o==='ask_volume'&&HOUSE.has(j?.category)&&!amb?houseVolumePrompt(j):base.prompt(o,j,amb)
-  if(o==='ask_furniture'&&/\bwardrobe\b/i.test(arr(j?.inventory).join(' '))&&!amb){
-    actual='What size is the wardrobe? Door count or dimensions are both fine — for example four-door, or roughly width × height. A photo is useful too, but not required.'
-  }
+  if(o==='ask_furniture'&&/\bwardrobe\b/i.test(arr(j?.inventory).join(' '))&&!amb)actual='What size is the wardrobe? Door count or dimensions are both fine — for example four-door, or roughly width × height. A photo is useful too, but not required.'
   if(j?.q?.controller_customer_ack&&!norm(actual).startsWith(norm(j.q.controller_customer_ack)))actual=`${j.q.controller_customer_ack}\n\n${actual}`
   return actual
 }
