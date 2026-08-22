@@ -12,8 +12,8 @@ export const prompt=base.prompt
 
 const ACCESS_FIELDS=['floor','stairs','lift','parking','internal_stairs','external_steps','carry_distance','access_notes']
 const FIELD_TERMS={
-  stairs:/\bstairs?\b/i,
-  internal_stairs:/\bstairs?\b/i,
+  stairs:/\b(?:stairs?|flights?(?: of stairs?)?)\b/i,
+  internal_stairs:/\b(?:stairs?|flights?(?: of stairs?)?)\b/i,
   lift:/\blift\b/i,
   floor:/\bfloor\b/i,
   parking:/\bpark(?:ing)?\b/i,
@@ -44,8 +44,6 @@ function enforceNamedStopAccess(j,before,message){
   if(stops.length<3)return
   j.q.multi_stop=ms
 
-  // Primary A/B endpoints were already established before this access-detail
-  // turn. An intermediate-stop sentence must never rewrite those route towns.
   if(clean(before?.collection?.town))j.collection.town=before.collection.town
   if(clean(before?.delivery?.town))j.delivery.town=before.delivery.town
 
