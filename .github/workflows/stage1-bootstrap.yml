@@ -1,0 +1,46 @@
+name: Stage 1 bootstrap exact snapshot
+
+on:
+  push:
+    branches:
+      - refactor/stage1-flatten-kernel
+
+permissions:
+  contents: write
+
+jobs:
+  apply-stage1:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: refactor/stage1-flatten-kernel
+
+      - name: Reconstruct and verify Opus patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .stage1-bootstrap/patch.part*.b64 | base64 -d | xz -d > /tmp/stage1.patch
+          echo "8aa1efcb9dbcc3ec8231c1eb1b09f20116834cfd4fa9b3e3ea4a11ef064788a0  /tmp/stage1.patch" | sha256sum -c -
+
+      - name: Apply exact Stage 1 patch to reviewed parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Claude (Cowork)"
+          git config user.email "noreply@anthropic.com"
+          git reset --hard 39a3db77feb9cb1910de09821a02ec6be52b0652
+          git am /tmp/stage1.patch
+          test "$(git rev-parse HEAD^)" = "39a3db77feb9cb1910de09821a02ec6be52b0652"
+          test "$(git rev-parse HEAD^{tree})" = "66ea99cd7022d35b14780ea32d3034ab1119ac79"
+          echo "Final commit: $(git rev-parse HEAD)"
+          echo "Final tree:   $(git rev-parse HEAD^{tree})"
+
+      - name: Publish clean Stage 1 branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin HEAD:refs/heads/refactor/stage1-flatten-kernel --force
